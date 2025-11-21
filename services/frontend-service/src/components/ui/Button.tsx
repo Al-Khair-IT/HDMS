@@ -27,9 +27,9 @@ export const Button: React.FC<ButtonProps> = ({
   
   const variantClasses = {
     primary: {
-      bg: THEME.colors.primary,
+      bg: '#365486', // primary-medium
       text: 'white',
-      hover: 'hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]',
+      hover: 'hover:bg-[#365486]/90 hover:scale-105 active:scale-95',
       border: 'none',
       before: 'before:absolute before:inset-0 before:bg-white before:opacity-0 before:transition-opacity hover:before:opacity-10',
     },

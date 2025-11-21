@@ -5,12 +5,15 @@
 import { Comment } from './chat';
 
 export type TicketStatus = 
+  | 'draft'
   | 'pending' 
+  | 'submitted'
   | 'assigned' 
   | 'in_progress' 
   | 'completed' 
   | 'rejected' 
-  | 'resolved';
+  | 'resolved'
+  | 'closed';
 
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 

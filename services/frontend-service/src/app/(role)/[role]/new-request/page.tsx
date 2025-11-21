@@ -1,63 +1,142 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../../lib/auth';
 import { useTicketActions } from '../../../../hooks/useTicketActions';
-import { PageWrapper } from '../../../../components/layout/PageWrapper';
+import { Card, CardContent } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/Button';
 import { Input } from '../../../../components/ui/Input';
 import { TextArea } from '../../../../components/ui/TextArea';
 import { Select, SelectOption } from '../../../../components/ui/Select';
-import { Card, CardContent } from '../../../../components/ui/card';
-import { Upload, X, File } from 'lucide-react';
+import { PriorityBadge } from '../../../../components/common/PriorityBadge';
+import { FileUpload, FileWithStatus } from '../../../../components/common/FileUpload';
 import { THEME } from '../../../../lib/theme';
-import { validateTicketSubject, validateTicketDescription } from '../../../../lib/validation';
-import { TICKET_PRIORITY } from '../../../../lib/constants';
+import { 
+  validateTicketSubject, 
+  validateTicketDescription,
+  validateRequired 
+} from '../../../../lib/validation';
+import { TICKET_PRIORITY, DEPARTMENTS } from '../../../../lib/constants';
+import { ticketService } from '../../../../services/api/ticketService';
+import { AlertCircle, Save } from 'lucide-react';
+
+// Department categories mapping
+const DEPARTMENT_CATEGORIES: Record<string, SelectOption[]> = {
+  'IT': [
+    { value: 'hardware', label: 'Hardware Issue' },
+    { value: 'software', label: 'Software Issue' },
+    { value: 'network', label: 'Network Issue' },
+    { value: 'email', label: 'Email Issue' },
+    { value: 'access', label: 'Access Request' },
+  ],
+  'HR': [
+    { value: 'leave', label: 'Leave Request' },
+    { value: 'payroll', label: 'Payroll Issue' },
+    { value: 'benefits', label: 'Benefits' },
+    { value: 'policy', label: 'Policy Query' },
+  ],
+  'Electrical': [
+    { value: 'repair', label: 'Repair' },
+    { value: 'installation', label: 'Installation' },
+    { value: 'maintenance', label: 'Maintenance' },
+  ],
+  'Procurement': [
+    { value: 'purchase', label: 'Purchase Request' },
+    { value: 'approval', label: 'Approval' },
+  ],
+  'Accounts': [
+    { value: 'payment', label: 'Payment Issue' },
+    { value: 'invoice', label: 'Invoice' },
+    { value: 'expense', label: 'Expense' },
+  ],
+  'Furniture': [
+    { value: 'repair', label: 'Repair' },
+    { value: 'replacement', label: 'Replacement' },
+    { value: 'new', label: 'New Request' },
+  ],
+  'Plumbing': [
+    { value: 'repair', label: 'Repair' },
+    { value: 'installation', label: 'Installation' },
+  ],
+  'Maintenance': [
+    { value: 'general', label: 'General Maintenance' },
+    { value: 'urgent', label: 'Urgent Repair' },
+  ],
+};
 
 export default function NewRequestPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { createTicket } = useTicketActions();
+  
   const [loading, setLoading] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [openTicketsCount, setOpenTicketsCount] = useState<number>(0);
   
   const [formData, setFormData] = useState({
     subject: '',
     description: '',
     department: '',
+    category: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
   });
   
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<FileWithStatus[]>([]);
 
-  const departments: SelectOption[] = [
-    { value: 'IT', label: 'IT Department' },
-    { value: 'HR', label: 'HR Department' },
-    { value: 'Finance', label: 'Finance Department' },
-    { value: 'Operations', label: 'Operations Department' },
-    { value: 'Admin', label: 'Administration' },
-  ];
+  // Department options
+  const departmentOptions: SelectOption[] = DEPARTMENTS.map(dept => ({
+    value: dept,
+    label: `${dept} Department`,
+  }));
 
-  const priorities: SelectOption[] = [
+  // Category options (depends on department)
+  const categoryOptions = useMemo<SelectOption[]>(() => {
+    if (!formData.department) return [];
+    return DEPARTMENT_CATEGORIES[formData.department] || [];
+  }, [formData.department]);
+
+  // Priority options with preview
+  const priorityOptions: SelectOption[] = [
     { value: TICKET_PRIORITY.LOW, label: 'Low' },
     { value: TICKET_PRIORITY.MEDIUM, label: 'Medium' },
     { value: TICKET_PRIORITY.HIGH, label: 'High' },
     { value: TICKET_PRIORITY.URGENT, label: 'Urgent' },
   ];
 
+  // Check open tickets count
+  useEffect(() => {
+    const checkOpenTickets = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await ticketService.getTickets({ 
+          requesterId: user.id,
+          status: 'pending,assigned,in_progress'
+        });
+        const tickets = Array.isArray(response) ? response : (response?.results || []);
+        setOpenTicketsCount(tickets.length);
+      } catch (error) {
+        // Silently fail
+      }
+    };
+    checkOpenTickets();
+  }, [user?.id]);
+
   const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Reset category when department changes
+      if (field === 'department') {
+        newData.category = '';
+      }
+      return newData;
+    });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setAttachments(prev => [...prev, ...files]);
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setFormError(null);
   };
 
   const validateForm = (): boolean => {
@@ -69,18 +148,60 @@ export default function NewRequestPage() {
     const descriptionError = validateTicketDescription(formData.description);
     if (descriptionError) newErrors.description = descriptionError;
 
-    if (!formData.department) {
+    if (!validateRequired(formData.department)) {
       newErrors.department = 'Department is required';
+    }
+
+    if (!validateRequired(formData.category)) {
+      newErrors.category = 'Category is required';
+    }
+
+    if (!validateRequired(formData.priority)) {
+      newErrors.priority = 'Priority is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleSaveDraft = async () => {
+    setSavingDraft(true);
+    setFormError(null);
+    
+    try {
+      // Draft doesn't need full validation
+      const ticket = await ticketService.createTicket({
+        subject: formData.subject || 'Draft',
+        description: formData.description || '',
+        department: formData.department || 'IT',
+        priority: formData.priority,
+        category: formData.category,
+        attachments: attachments.map(f => f.file),
+        isDraft: true,
+      });
+
+      if (ticket) {
+        router.push(`/requester/request-detail/${ticket.id}`);
+      }
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to save draft');
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     
     if (!validateForm()) {
+      setFormError('Please fix the errors below');
+      return;
+    }
+
+    // Check open tickets limit
+    if (openTicketsCount >= 10) {
+      setFormError('You have reached the maximum limit of 10 open tickets. Please resolve or close existing tickets before creating a new one.');
       return;
     }
 
@@ -88,167 +209,225 @@ export default function NewRequestPage() {
     
     try {
       const ticket = await createTicket({
-        ...formData,
-        attachments: attachments.length > 0 ? attachments : undefined,
+        subject: formData.subject,
+        description: formData.description,
+        department: formData.department,
+        priority: formData.priority,
+        category: formData.category,
+        attachments: attachments.filter(f => f.status === 'ready' || f.status === 'pending').map(f => f.file),
       });
 
       if (ticket) {
         router.push(`/requester/request-detail/${ticket.id}`);
       }
-    } catch (error) {
-      console.error('Error creating ticket:', error);
+    } catch (error: any) {
+      setFormError(error.message || 'Failed to create ticket');
     } finally {
       setLoading(false);
     }
   };
 
+  const subjectCharCount = formData.subject.length;
+  const descriptionCharCount = formData.description.length;
+
   return (
-    <PageWrapper
-      title="Create New Request"
-      description="Submit a new help desk ticket"
-    >
-      <div className="max-w-3xl mx-auto animate-fade-in">
-        <Card className="shadow-xl" variant="elevated">
+    <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: '#e7ecef', minHeight: '100vh' }}>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#274c77' }}>
+            Create New Request
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            Submit a new help desk ticket
+          </p>
+        </div>
+
+        {/* Open Tickets Warning */}
+        {openTicketsCount >= 8 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-yellow-800">
+                You have {openTicketsCount} open tickets
+              </p>
+              <p className="text-xs text-yellow-700 mt-1">
+                {openTicketsCount >= 10 
+                  ? 'You have reached the maximum limit. Please resolve existing tickets before creating new ones.'
+                  : 'You are approaching the limit of 10 open tickets.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Form Error */}
+        {formError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-600">{formError}</p>
+          </div>
+        )}
+
+        <Card className="shadow-xl">
           <CardContent className="p-6 md:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Subject */}
-            <div className="space-y-2">
-              <Input
-                label="Subject"
-                type="text"
-                placeholder="Brief description of your request"
-                value={formData.subject}
-                onChange={(e) => handleChange('subject', e.target.value)}
-                error={errors.subject}
-                required
-                className="text-base"
-              />
-            </div>
+              {/* Basic Information Section */}
+              <div className="space-y-6">
+                <h2 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
+                  Basic Information
+                </h2>
 
-            {/* Department and Priority Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Select
-                  label="Department"
-                  options={departments}
-                  value={formData.department}
-                  onChange={(value) => handleChange('department', value)}
-                  placeholder="Select department"
-                  error={errors.department}
-                  fullWidth
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Select
-                  label="Priority"
-                  options={priorities}
-                  value={formData.priority}
-                  onChange={(value) => handleChange('priority', value)}
-                  placeholder="Select priority"
-                  fullWidth
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <TextArea
-                label="Description"
-                placeholder="Provide detailed information about your request..."
-                value={formData.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                error={errors.description}
-                rows={8}
-                required
-              />
-            </div>
-
-            {/* Attachments */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold mb-2" style={{ color: THEME.colors.primary }}>
-                Attachments <span className="text-gray-500 font-normal">(Optional)</span>
-              </label>
-              <div className="space-y-3">
-                <label className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all duration-200 group" style={{ borderColor: THEME.colors.medium }}>
-                  <Upload className="w-8 h-8 group-hover:scale-110 transition-transform" style={{ color: THEME.colors.primary }} />
-                  <div className="text-center">
-                    <span className="text-sm font-medium text-gray-700 block">Click to upload files</span>
-                    <span className="text-xs text-gray-500 mt-1 block">or drag and drop</span>
-                    <span className="text-xs text-gray-400 mt-1 block">PNG, JPG, PDF, DOC up to 10MB</span>
-                  </div>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    accept="image/*,.pdf,.doc,.docx"
+                {/* Title */}
+                <div className="space-y-2">
+                  <Input
+                    label="Title"
+                    type="text"
+                    placeholder="Brief description of your request"
+                    value={formData.subject}
+                    onChange={(e) => handleChange('subject', e.target.value)}
+                    error={errors.subject}
+                    required
+                    maxLength={200}
+                    className="text-base"
                   />
-                </label>
-
-                {attachments.length > 0 && (
-                  <div className="space-y-2 mt-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      Selected Files ({attachments.length})
-                    </p>
-                    {attachments.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                        style={{ borderColor: THEME.colors.medium }}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="flex-shrink-0 p-2 rounded" style={{ backgroundColor: THEME.colors.light }}>
-                            <File className="w-5 h-5" style={{ color: THEME.colors.primary }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / 1024).toFixed(2)} KB
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(index)}
-                          className="flex-shrink-0 p-2 hover:bg-red-50 rounded-lg transition-colors ml-2"
-                          title="Remove file"
-                        >
-                          <X className="w-5 h-5" style={{ color: THEME.colors.error }} />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
+                      Minimum 10 characters required
+                    </span>
+                    <span className={`text-xs ${subjectCharCount > 200 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {subjectCharCount} / 200
+                    </span>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Actions */}
-            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t" style={{ borderColor: THEME.colors.medium + '40' }}>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={() => router.back()}
-                className="sm:flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                loading={loading}
-                className="sm:flex-1"
-              >
-                {loading ? 'Submitting...' : 'Submit Request'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                {/* Description */}
+                <div className="space-y-2">
+                  <TextArea
+                    label="Description"
+                    placeholder="Provide detailed information about your request..."
+                    value={formData.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    error={errors.description}
+                    rows={8}
+                    required
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
+                      Minimum 20 characters required
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {descriptionCharCount} characters
+                    </span>
+                  </div>
+                </div>
+
+                {/* Department and Category Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Select
+                      label="Department"
+                      options={departmentOptions}
+                      value={formData.department}
+                      onChange={(value) => handleChange('department', value)}
+                      placeholder="Select department"
+                      error={errors.department}
+                      fullWidth
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Select
+                      label="Category"
+                      options={categoryOptions}
+                      value={formData.category}
+                      onChange={(value) => handleChange('category', value)}
+                      placeholder={formData.department ? "Select category" : "Select department first"}
+                      error={errors.category}
+                      fullWidth
+                      required
+                      disabled={!formData.department}
+                    />
+                  </div>
+                </div>
+
+                {/* Priority */}
+                <div className="space-y-2">
+                  <Select
+                    label="Priority"
+                    options={priorityOptions}
+                    value={formData.priority}
+                    onChange={(value) => handleChange('priority', value)}
+                    placeholder="Select priority"
+                    error={errors.priority}
+                    fullWidth
+                    required
+                  />
+                  {formData.priority && (
+                    <div className="mt-2">
+                      <PriorityBadge priority={formData.priority} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Attachments Section */}
+              <div className="space-y-4 pt-6 border-t" style={{ borderColor: THEME.colors.light + '40' }}>
+                <div>
+                  <h2 className="text-lg font-semibold mb-2" style={{ color: THEME.colors.primary }}>
+                    Attachments
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Upload files to support your request. Max 250MB per file, 100MB total.
+                  </p>
+                </div>
+                <FileUpload
+                  files={attachments}
+                  onFilesChange={setAttachments}
+                  disabled={loading || savingDraft}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t" style={{ borderColor: THEME.colors.light + '40' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => router.back()}
+                  className="sm:flex-1"
+                  disabled={loading || savingDraft}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={handleSaveDraft}
+                  loading={savingDraft}
+                  disabled={loading}
+                  leftIcon={<Save className="w-4 h-4" />}
+                  className="sm:flex-1"
+                >
+                  {savingDraft ? 'Saving...' : 'Save as Draft'}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  loading={loading}
+                  disabled={savingDraft}
+                  className="sm:flex-1"
+                >
+                  {loading ? 'Submitting...' : 'Submit Request'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
-    </PageWrapper>
+    </div>
   );
 }
 
