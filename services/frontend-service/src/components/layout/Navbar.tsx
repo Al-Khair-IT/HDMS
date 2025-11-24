@@ -162,9 +162,10 @@ export const Navbar: React.FC<NavbarProps> = ({ role }) => {
 
   return (
     <nav 
-      className="fixed top-0 right-0 z-50 px-4 md:px-6 py-3 md:py-4 mb-4 sm:mb-6 md:mb-8 flex items-center gap-2 sm:gap-3"
+      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 py-3 md:py-4 flex items-center justify-end gap-2 sm:gap-3"
       style={{ 
-        backgroundColor: 'transparent', // Transparent background like SIS
+        backgroundColor: '#e7ecef',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
       }}
     >
       {/* Notification Bell - SIS Style */}

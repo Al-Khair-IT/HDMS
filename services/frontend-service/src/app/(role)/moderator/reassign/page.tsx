@@ -21,11 +21,57 @@ import ticketService from '../../../../services/api/ticketService';
 import { Ticket } from '../../../../types';
 import Link from 'next/link';
 
+// Mock data generator for reassignable tickets
+const generateMockReassignableTickets = (): Ticket[] => {
+  const now = new Date();
+  const departments = ['IT', 'HR', 'Procurement', 'Electrical', 'Plumbers', 'Furniture Maintenance', 'Accounts', 'IT Maintenance'];
+  const assignees = ['Ahmed Khan', 'Fatima Ali', 'Hassan Raza', 'Sara Ahmed', 'Ali Hassan', 'Zainab Malik', 'Bilal Khan', 'Nadia Sheikh'];
+  const priorities: Ticket['priority'][] = ['low', 'medium', 'high', 'urgent'];
+  const requesterNames = [
+    'Ahmed Khan', 'Fatima Ali', 'Hassan Raza', 'Sara Ahmed', 'Ali Hassan',
+    'Zainab Malik', 'Bilal Khan', 'Nadia Sheikh', 'Omar Ali', 'Ayesha Raza',
+    'Kamran Malik', 'Saima Khan', 'Tariq Hussain', 'Farhan Ali', 'Hina Sheikh'
+  ];
+  const statuses: Ticket['status'][] = ['assigned', 'in_progress', 'pending'];
+  
+  const mockTickets: Ticket[] = [];
+  
+  for (let i = 1; i <= 15; i++) {
+    const dept = departments[Math.floor(Math.random() * departments.length)];
+    const assignee = assignees[Math.floor(Math.random() * assignees.length)];
+    const priority = priorities[Math.floor(Math.random() * priorities.length)];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const hoursAgo = Math.floor(Math.random() * 72);
+    const requesterIndex = (i - 1) % requesterNames.length;
+    
+    mockTickets.push({
+      id: `reassign-ticket-${i}`,
+      ticketId: `HD-2024-${String(i).padStart(3, '0')}`,
+      subject: `Reassignable Ticket ${i}: ${['Server Issue', 'Network Problem', 'Hardware Request', 'Software License', 'Maintenance Request'][Math.floor(Math.random() * 5)]}`,
+      description: `This is a reassignable ticket description for ticket ${i}. It can be reassigned to a different department or assignee.`,
+      department: dept,
+      priority,
+      status,
+      requesterId: `req-${i}`,
+      requesterName: requesterNames[requesterIndex],
+      assigneeId: `assignee-${i}`,
+      assigneeName: assignee,
+      submittedDate: new Date(now.getTime() - (hoursAgo + 24) * 60 * 60 * 1000).toISOString(),
+      assignedDate: status !== 'pending' ? new Date(now.getTime() - hoursAgo * 60 * 60 * 1000).toISOString() : undefined,
+      createdAt: new Date(now.getTime() - (hoursAgo + 24) * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(now.getTime() - hoursAgo * 60 * 60 * 1000).toISOString(),
+    });
+  }
+  
+  return mockTickets;
+};
+
 const ReassignPage: React.FC = () => {
   const router = useRouter();
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [useMockData, setUseMockData] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDepartment, setFilterDepartment] = useState('all');
@@ -33,18 +79,44 @@ const ReassignPage: React.FC = () => {
   useEffect(() => {
     const fetchTickets = async () => {
       try {
+        setLoading(true);
         // Fetch tickets that can be reassigned (assigned or in_progress tickets)
         const response = await ticketService.getTickets();
-        // Filter tickets that are assigned or in progress (can be reassigned)
-        const reassignableTickets = response.results.filter(ticket => 
-          ticket.status === 'assigned' || 
-          ticket.status === 'in_progress' ||
-          ticket.status === 'pending'
-        );
-        setTickets(reassignableTickets);
-      } catch (error) {
+        
+        // Check if response exists and has results
+        if (response && (Array.isArray(response) || response.results)) {
+          const ticketsList = Array.isArray(response) ? response : (response.results || []);
+          
+          // Filter tickets that are assigned or in progress (can be reassigned)
+          const reassignableTickets = ticketsList.filter(ticket => 
+            ticket.status === 'assigned' || 
+            ticket.status === 'in_progress' ||
+            ticket.status === 'pending'
+          );
+          
+          setTickets(reassignableTickets);
+          setUseMockData(false);
+        } else {
+          // No valid response, use mock data
+          const mockTickets = generateMockReassignableTickets();
+          setTickets(mockTickets);
+          setUseMockData(true);
+        }
+      } catch (error: any) {
         console.error('Error fetching tickets:', error);
-        setTickets([]);
+        
+        // Handle network errors gracefully
+        const isNetworkError = error?.isNetworkError || !error?.response;
+        
+        if (isNetworkError) {
+          console.warn('API not available, using mock data');
+          const mockTickets = generateMockReassignableTickets();
+          setTickets(mockTickets);
+          setUseMockData(true);
+        } else {
+          setTickets([]);
+          setUseMockData(false);
+        }
       } finally {
         setLoading(false);
       }
@@ -80,10 +152,20 @@ const ReassignPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
+      {/* Demo Mode Banner */}
+      {useMockData && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-yellow-600" />
+          <p className="text-sm text-yellow-800">
+            <strong>Demo Mode:</strong> Using mock data. API is unavailable.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: THEME.colors.primary }}>
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: THEME.colors.primary }}>
           Reassign Tickets
         </h1>
         <p className="text-gray-600">Reassign tickets to different assignees</p>

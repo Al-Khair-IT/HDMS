@@ -11,12 +11,12 @@ import {
   Settings,
   TrendingUp,
   Inbox,
-  Save,
   ChevronRight,
   X,
   LogOut // Add LogOut icon
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth'; // Import useAuth hook
+import { Logo } from '../ui/logo';
 
 interface SidebarProps {
   role: string;
@@ -44,10 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
         return [
           { name: 'Dashboard', url: `/${role}/dashboard`, icon: Home },
           { name: 'Ticket Pool', url: `/${role}/ticket-pool`, icon: Inbox },
-          { name: 'Review', url: `/${role}/review`, icon: FileText },
           { name: 'Assigned', url: `/${role}/assigned`, icon: UserPlus },
           { name: 'Reassign', url: `/${role}/reassign`, icon: TrendingUp },
-          { name: 'Create Subtickets', url: `/${role}/create-subtickets`, icon: Save },
           { name: 'Notifications', url: `/${role}/notifications`, icon: Inbox },
           { name: 'Profile', url: `/${role}/profile`, icon: Users }
         ];
@@ -86,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
     <>
       {/* Desktop Sidebar */}
       <aside 
-        className={`hidden md:block fixed left-0 top-0 bottom-0 z-40 h-screen transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+        className={`hidden md:block fixed left-0 top-0 bottom-0 z-[60] h-screen transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isOpen ? 'w-72 md:w-64 lg:w-72' : 'w-18'}
           ${isOpen ? 'bg-[#e7ecef]' : 'bg-[#a3cef1]'}
           rounded-r-3xl
@@ -99,18 +97,21 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           transition: 'background-color 0.5s ease, width 700ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {/* Logo Section */}
-        <div className={`px-4 py-8 flex items-center justify-${isOpen ? 'start' : 'center'} gap-3`}>
-          {isOpen && (
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_2px_8px_0_rgba(96,150,186,0.2)]">
-              {/* Helpdesk Logo - replace with your logo */}
-              <span className="text-2xl font-bold text-[#274c77]">H</span>
-            </div>
-          )}
-          {isOpen && (
-            <span className="text-4xl font-bold text-[#274c77] drop-shadow-lg tracking-[0.02em]">
-              Helpdesk
-            </span>
+        {/* Logo Section - Clickable */}
+        <div className={`px-4 py-8 ${isOpen ? '' : 'flex justify-center'}`}>
+          {isOpen ? (
+            <Logo 
+              size="full" 
+              showText={true} 
+              showSubtitle={true} 
+              onClick={() => setIsOpen(!isOpen)}
+            />
+          ) : (
+            <Logo 
+              size="md" 
+              showText={false} 
+              onClick={() => setIsOpen(!isOpen)}
+            />
           )}
         </div>
 
@@ -194,13 +195,15 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           </button>
         </div>
 
-        {/* Toggle Button */}
+        {/* Toggle Button - REMOVE THIS ENTIRE SECTION (lines 189-195) */}
+        {/* DELETE THIS:
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="absolute -right-3 top-20 w-6 h-6 bg-[#1c3f67] rounded-full flex items-center justify-center text-white hover:bg-[#365486] transition-all"
         >
           {isOpen ? '←' : '→'}
         </button>
+        */}
       </aside>
 
       {/* Mobile Overlay */}
@@ -224,12 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
       >
         {/* Mobile Header */}
         <div className="px-4 py-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_2px_8px_0_rgba(96,150,186,0.2)]">
-              <span className="text-2xl font-bold text-[#274c77]">H</span>
-            </div>
-            <span className="text-4xl font-bold text-[#274c77] drop-shadow-lg">Helpdesk</span>
-          </div>
+          <Logo size="full" showText={true} showSubtitle={true} />
           <button
             onClick={() => setMobileSidebarOpen(false)}
             className="p-2 rounded-lg hover:bg-[#a3cef1] transition-colors"
