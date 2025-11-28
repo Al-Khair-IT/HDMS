@@ -1,28 +1,23 @@
 """
 HTTP client for User Service (self-reference for consistency).
 """
-import requests
 from django.conf import settings
+from clients import HTTPClient
 
 
 class UserClient:
     """Client for User Service API calls."""
     
     BASE_URL = settings.USER_SERVICE_URL
+    _client = HTTPClient()
     
     @classmethod
     def get_user(cls, user_id: str, token: str = None):
         """Get user by ID."""
-        headers = {}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
-        
-        response = requests.get(
+        return cls._client.get_json(
             f'{cls.BASE_URL}/api/v1/users/{user_id}',
-            headers=headers
+            token=token
         )
-        response.raise_for_status()
-        return response.json()
     
     @classmethod
     def validate_user(cls, user_id: str, token: str = None) -> bool:
@@ -30,7 +25,7 @@ class UserClient:
         try:
             cls.get_user(user_id, token)
             return True
-        except requests.RequestException:
+        except Exception:
             return False
 
 

@@ -12,7 +12,7 @@ export interface Column<T> {
   sortable?: boolean;
   width?: string;
 }
-export default function DataTable<T>({
+function DataTable<T>({
   data, columns, initialSort, pageSize = 10, showSearch = true
 }: {
   data: T[];
@@ -102,3 +102,6 @@ export default function DataTable<T>({
     </div>
   );
 }
+
+export default DataTable;
+export { DataTable };

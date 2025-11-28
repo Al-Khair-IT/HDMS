@@ -9,6 +9,204 @@
 
 ---
 
+## **🔧 Spec Kit Workflow - How to Use This Document**
+
+### **Overview**
+This document contains detailed tasks. Use **Spec Kit** to implement each task systematically. Spec Kit helps you:
+- Create feature specifications
+- Generate implementation plans
+- Break down tasks into actionable steps
+- Implement code with proper context
+
+### **Step-by-Step Workflow for Each Task**
+
+#### **Step 1: Create Feature Specification**
+**Location:** Run in project root directory (`D:\HDMS\`)
+
+```powershell
+# Open PowerShell in project root
+cd D:\HDMS
+
+# Create new feature (replace with task name)
+.specify/scripts/powershell/create-new-feature.ps1 "Task 1.2: Database Infrastructure Setup"
+```
+
+**Output:** Creates `specs/001-database-infrastructure-setup/spec.md`
+
+---
+
+#### **Step 2: Fill Specification File**
+**Location:** `specs/[###-feature-name]/spec.md`
+
+**What to do:**
+1. Open the generated `spec.md` file
+2. Copy the **"What to do"** section from the task below
+3. Copy the **"Tech Stack"** section
+4. Copy the **"Files to create"** section
+5. Add user stories based on task requirements
+
+**Example for Task 1.2:**
+```markdown
+## User Scenarios & Testing
+
+### User Story 1 - Database Connection (Priority: P1)
+**Why**: All services need database access to function
+
+**Acceptance Scenarios**:
+1. **Given** Docker Compose is running, **When** I start any service, **Then** it connects to PostgreSQL successfully
+2. **Given** Redis is running, **When** service starts, **Then** it connects to Redis for caching
+
+## Requirements
+
+### Functional Requirements
+- **FR-001**: System MUST set up PostgreSQL 16 in Docker Compose
+- **FR-002**: System MUST set up Redis 7 for cache, queue, and channel layer
+- **FR-003**: All 5 services MUST connect to shared PostgreSQL database
+- **FR-004**: Services MUST configure Redis connections (cache: 6379/0, Celery: 6379/2, Channels: 6379/1)
+```
+
+---
+
+#### **Step 3: Generate Implementation Plan**
+**Location:** Cursor IDE Chat (or your AI assistant)
+
+**Command:**
+```
+/speckit.plan
+```
+
+**What it does:**
+- Reads your `spec.md` file
+- Analyzes the project structure
+- Generates `plan.md` with technical approach
+- Creates `research.md` with technology research
+- Suggests data models and architecture
+
+**Context it uses:**
+- Current project structure (`services/`, `docker-compose.yml`)
+- Existing code in services
+- `.specify/memory/constitution.md` (project principles)
+- Tech stack from spec.md
+
+---
+
+#### **Step 4: Generate Task List**
+**Location:** Cursor IDE Chat
+
+**Command:**
+```
+/speckit.tasks
+```
+
+**What it does:**
+- Reads `plan.md` and `spec.md`
+- Breaks down implementation into actionable tasks
+- Creates `tasks.md` with checkboxes
+- Organizes tasks by user story and priority
+- Identifies parallel work opportunities
+
+**Output:** `specs/[###-feature-name]/tasks.md`
+
+---
+
+#### **Step 5: Implement**
+**Location:** Cursor IDE Chat
+
+**Option A - Full Automation:**
+```
+/speckit.implement
+```
+This will implement all tasks automatically.
+
+**Option B - Manual Implementation:**
+1. Open `tasks.md` file
+2. Work through tasks one by one
+3. Check off completed tasks
+4. Test after each user story
+
+---
+
+### **Quick Reference: Spec Kit Commands**
+
+| Command | Location | Purpose | Input Context |
+|---------|----------|---------|---------------|
+| `create-new-feature.ps1` | PowerShell (project root) | Create feature spec | Task name from this doc |
+| `/speckit.plan` | Cursor Chat | Generate technical plan | spec.md file |
+| `/speckit.tasks` | Cursor Chat | Generate task list | plan.md + spec.md |
+| `/speckit.implement` | Cursor Chat | Auto-implement code | tasks.md |
+| `/speckit.clarify` | Cursor Chat | Ask questions about unclear requirements | spec.md |
+
+---
+
+### **Context Sources for Spec Kit**
+
+When you run Spec Kit commands, it automatically uses:
+
+1. **Project Structure:**
+   - `services/` directory structure
+   - Existing Docker Compose files
+   - Current code in services
+
+2. **Constitution File:**
+   - `.specify/memory/constitution.md` - Project principles and rules
+
+3. **Documentation:**
+   - This Implementation Task List
+   - Technical Architecture docs
+   - Database Design docs
+
+4. **Existing Code:**
+   - Models, APIs, settings already implemented
+   - Shared code in `services/shared/`
+
+---
+
+### **Example: Complete Workflow for Task 1.2**
+
+```powershell
+# Step 1: Create feature
+cd D:\HDMS
+.specify/scripts/powershell/create-new-feature.ps1 "Database Infrastructure Setup"
+
+# Step 2: Edit spec.md
+# Open: specs/001-database-infrastructure-setup/spec.md
+# Copy "What to do", "Tech Stack", "Files to create" from Task 1.2 below
+# Add user stories
+
+# Step 3: Generate plan (in Cursor Chat)
+/speckit.plan
+
+# Step 4: Generate tasks (in Cursor Chat)
+/speckit.tasks
+
+# Step 5: Implement (in Cursor Chat)
+/speckit.implement
+```
+
+---
+
+### **Important Notes**
+
+1. **One Task = One Feature:** Each task in this document should be a separate Spec Kit feature
+2. **Copy Task Details:** Always copy "What to do", "Tech Stack", and "Files to create" to spec.md
+3. **Check Dependencies:** Review "Connections" section to understand task dependencies
+4. **Test After Each Story:** Spec Kit organizes by user stories - test each independently
+5. **Update Status:** Mark tasks as complete in this document after implementation
+
+### **Task Template Pattern**
+
+Every task in this document follows this structure. When using Spec Kit:
+
+1. **Read the task** - Understand "What to do", "Tech Stack", "Connections"
+2. **Create feature** - Use PowerShell script with task name
+3. **Fill spec.md** - Copy relevant sections from task
+4. **Use Spec Kit prompt** - Copy the prompt from "Spec Kit Usage" section (if available) or create your own
+5. **Generate & Implement** - Use `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`
+
+**Note:** Some tasks may have "Spec Kit Usage" section with ready-to-use prompts. For tasks without this section, follow the workflow above and create your own prompt based on "What to do" section.
+
+---
+
 ## **📋 Task Categories Overview**
 
 1. **Foundation Setup** (Must do first - infrastructure)
@@ -96,11 +294,24 @@
 - Create `.env.example` files with database credentials
 - Configure Docker Compose volumes for data persistence
 
+**Spec Kit Usage:**
+1. **Create Feature:** `.specify/scripts/powershell/create-new-feature.ps1 "Database Infrastructure Setup"`
+2. **Fill spec.md:** Copy "What to do", "Tech Stack", and "Configuration" sections above
+3. **Use Prompt in Cursor Chat:**
+   ```
+   /speckit.specify "Task 1.2: Set up PostgreSQL 16 and Redis 7 in Docker Compose for HDMS microservices. Configure database connections for all 5 Django services (user-service, ticket-service, communication-service, file-service). Set up Redis for caching (port 6379/0), Celery broker (port 6379/2), and Django Channels (port 6379/1). Update DATABASES, CACHES, and CELERY_BROKER_URL in each service's Django settings. Add health checks and test connections from each service. Configure Docker Compose volumes for data persistence."
+   ```
+4. **Generate Plan:** `/speckit.plan`
+5. **Generate Tasks:** `/speckit.tasks`
+6. **Implement:** `/speckit.implement` or follow tasks.md manually
+
 ---
 
 ### **Task 1.3: Shared BaseModel & Core Utilities**
 **Priority:** 🔴 CRITICAL  
 **Estimated Time:** 2-3 hours
+
+**Status:** ✅ **VERIFY** - BaseModel already exists in `services/shared/core/models.py`. Verify it has all required features.
 
 **What to do:**
 - Create `BaseModel` abstract class in `services/shared/core/models.py`
@@ -125,6 +336,17 @@
 - `services/shared/core/models.py` (BaseModel)
 - `services/shared/core/clients.py` (HTTP client utilities)
 - Update each service's `INSTALLED_APPS` to include shared code path
+
+**Spec Kit Usage:**
+1. **Create Feature:** `.specify/scripts/powershell/create-new-feature.ps1 "Shared BaseModel Core Utilities"`
+2. **Fill spec.md:** Copy "What to do", "Tech Stack", and "Files to create" sections above
+3. **Use Prompt in Cursor Chat:**
+   ```
+   /speckit.specify "Task 1.3: Create shared BaseModel abstract class in services/shared/core/models.py with UUID primary key, soft delete functionality (is_deleted, deleted_at), timestamps (created_at, updated_at), SoftDeleteManager and SoftDeleteQuerySet. Create shared HTTP client utilities in services/shared/core/clients.py for inter-service communication. Configure each Django service to import from shared code. Set up logging configuration for each service."
+   ```
+4. **Generate Plan:** `/speckit.plan`
+5. **Generate Tasks:** `/speckit.tasks`
+6. **Implement:** `/speckit.implement` or follow tasks.md manually
 
 ---
 

@@ -36,7 +36,7 @@ export default function RequestsPage() {
         }
 
         const response = await ticketService.getTickets(filters);
-        setTickets(response.results || response || []);
+        setTickets(response.results || []);
         setError(null);
       } catch (error: any) {
         // Handle network errors gracefully - API might not be available

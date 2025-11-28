@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   output: 'standalone',
   env: {
     NEXT_PUBLIC_API_GATEWAY_URL: process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost/api/v1',
@@ -7,6 +8,6 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
 
 

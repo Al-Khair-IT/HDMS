@@ -4,8 +4,7 @@ Business logic services for Chat app.
 from typing import Optional, List
 from django.db import transaction as db_transaction
 from .models import ChatMessage, TicketParticipant
-from core.clients.user_client import UserClient
-from core.clients.ticket_client import TicketClient
+# Lazy imports to avoid Django settings access at module level
 
 
 class ChatService:
@@ -28,6 +27,10 @@ class ChatService:
     @db_transaction.atomic
     def send_message(ticket_id: str, sender_id: str, message: str, mentions: List[str] = None) -> ChatMessage:
         """Send a chat message."""
+        # Lazy imports to avoid Django settings access at module level
+        from core.clients.ticket_client import TicketClient
+        from core.clients.user_client import UserClient
+        
         # Validate ticket exists
         if not TicketClient.validate_ticket(ticket_id):
             raise ValueError("Ticket does not exist")

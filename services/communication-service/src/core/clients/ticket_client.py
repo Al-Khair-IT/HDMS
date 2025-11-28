@@ -1,31 +1,40 @@
 """
 Ticket Service client for Communication Service.
 """
-import requests
-from django.conf import settings
+# Remove module-level settings import
+from clients import HTTPClient
 
 
 class TicketClient:
     """Client to communicate with Ticket Service."""
     
-    BASE_URL = settings.TICKET_SERVICE_URL
+    _client = None
+    
+    @classmethod
+    def _get_client(cls):
+        """Get HTTP client instance (lazy initialization)."""
+        if cls._client is None:
+            cls._client = HTTPClient()
+        return cls._client
+    
+    @classmethod
+    def _get_base_url(cls):
+        """Get base URL from settings (lazy access)."""
+        # Import settings only when method is called, not at module level
+        from django.conf import settings
+        return settings.TICKET_SERVICE_URL
     
     @classmethod
     def get_ticket(cls, ticket_id: str, token: str = None):
         """Get ticket details from Ticket Service."""
-        headers = {}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
-        
         try:
-            response = requests.get(
-                f'{cls.BASE_URL}/api/v1/tickets/{ticket_id}',
-                headers=headers,
-                timeout=5
+            return cls._get_client().get_json(
+                f'{cls._get_base_url()}/api/v1/tickets/{ticket_id}',
+                token=token
             )
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException:
+        except Exception as e:
+            # Handle ConnectionError, Timeout, and other exceptions gracefully
+            # Service not ready yet, return None instead of crashing
             return None
     
     @classmethod

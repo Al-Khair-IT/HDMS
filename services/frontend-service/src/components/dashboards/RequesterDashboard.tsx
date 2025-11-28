@@ -31,7 +31,7 @@ const RequesterDashboard: React.FC = () => {
     const fetchTickets = async () => {
       try {
         const response = await ticketService.getTickets({ requesterId: user?.id });
-        const ticketsList = Array.isArray(response) ? response : (response?.results || []);
+        const ticketsList = response.results || [];
         setTickets(ticketsList);
       } catch (error: any) {
         // Handle network errors gracefully - API might not be available

@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
+    curl \
     clamav \
     clamav-daemon \
     && rm -rf /var/lib/apt/lists/*

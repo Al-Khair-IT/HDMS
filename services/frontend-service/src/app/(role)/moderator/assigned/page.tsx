@@ -36,7 +36,7 @@ const AssignedTicketsPage: React.FC = () => {
     const fetchTickets = async () => {
       try {
         const response = await ticketService.getTickets({ status: 'assigned' });
-        const ticketsList = Array.isArray(response) ? response : (response?.results || []);
+        const ticketsList = response.results || [];
         setTickets(ticketsList);
       } catch (error: any) {
         console.error('Error fetching tickets:', error);

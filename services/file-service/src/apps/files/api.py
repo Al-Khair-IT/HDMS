@@ -14,8 +14,14 @@ router = Router(tags=["files"])
 
 
 @router.post("/upload", response=FileUploadResponse)
-def upload_file(request, file: UploadedFile, ticket_id: Optional[str] = None, chat_message_id: Optional[str] = None):
+def upload_file(request, ticket_id: Optional[str] = None, chat_message_id: Optional[str] = None):
     """Upload a file."""
+    # Get file from request.FILES
+    if 'file' not in request.FILES:
+        return {"error": "No file provided"}, 400
+    
+    file = request.FILES['file']
+    
     # Validate ticket or chat_message exists
     if ticket_id:
         ticket_client = TicketClient()

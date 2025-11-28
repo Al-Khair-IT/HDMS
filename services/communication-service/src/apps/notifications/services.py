@@ -4,7 +4,7 @@ Business logic services for Notification app.
 from typing import Optional, List
 from django.db import transaction as db_transaction
 from .models import Notification, NotificationType
-from core.clients.user_client import UserClient
+# Lazy imports to avoid Django settings access at module level
 
 
 class NotificationService:
@@ -34,6 +34,9 @@ class NotificationService:
         metadata: dict = None
     ) -> Notification:
         """Create a new notification."""
+        # Lazy import to avoid Django settings access at module level
+        from core.clients.user_client import UserClient
+        
         # Validate user exists
         if not UserClient.validate_user(user_id):
             raise ValueError("User does not exist")

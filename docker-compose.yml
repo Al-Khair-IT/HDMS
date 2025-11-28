@@ -1,41 +1,85 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database (Shared)
   postgres:
-    image: postgres:16-alpine
-    container_name: hdms-postgres
+    image: postgres:16
+    container_name: hdms_postgres
     environment:
-      POSTGRES_DB: hdms_db
-      POSTGRES_USER: hdms_user
-      POSTGRES_PASSWORD: hdms_password
+      POSTGRES_DB: ${POSTGRES_DB:-hdms_db}
+      POSTGRES_USER: ${POSTGRES_USER:-hdms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hdms_pwd}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/init-md5-password.sh:/docker-entrypoint-initdb.d/init-md5-password.sh:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     networks:
-      - backend-network
+      - hdms_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hdms_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hdms_user} -d ${POSTGRES_DB:-hdms_db}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # PgBouncer Connection Pooler
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: hdms_pgbouncer
+    environment:
+      PGBOUNCER_POOL_SIZE: ${PGBOUNCER_POOL_SIZE:-25}
+      # No DATABASES_* variables needed - using custom config
+    volumes:
+      - ./config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./config/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    entrypoint: ["/opt/pgbouncer/pgbouncer"]
+    command: ["/etc/pgbouncer/pgbouncer.ini"]
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 6432 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hdms_network
 
   # Redis (Shared)
   redis:
-    image: redis:7-alpine
-    container_name: hdms-redis
-    ports:
-      - "6379:6379"
+    image: redis:7
+    container_name: hdms_redis
+    command: >
+      sh -c "
+      if [ -n \"$$REDIS_PASSWORD\" ]; then
+        redis-server --requirepass $$REDIS_PASSWORD --appendonly yes
+      else
+        redis-server --appendonly yes
+      fi
+      "
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
     networks:
-      - backend-network
+      - hdms_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: >
+        sh -c "
+        if [ -n \"$$REDIS_PASSWORD\" ]; then
+          redis-cli -a \"$$REDIS_PASSWORD\" ping
+        else
+          redis-cli ping
+        fi
+        "
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
 
   # User Service
   user-service:
@@ -45,7 +89,7 @@ services:
     container_name: hdms-user-service
     environment:
       - DEBUG=True
-      - DATABASE_URL=postgresql://hdms_user:hdms_password@postgres:5432/hdms_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
       - USER_SERVICE_URL=http://user-service:8001
       - TICKET_SERVICE_URL=http://ticket-service:8002
@@ -53,18 +97,25 @@ services:
       - FILE_SERVICE_URL=http://file-service:8005
     volumes:
       - ./services/user-service/src:/app
+      - ./services/shared:/shared
     ports:
       - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - backend-network
+      - hdms_network
     restart: unless-stopped
-
-  # Ticket Service
+      # Ticket Service
   ticket-service:
     build:
       context: ./services/ticket-service
@@ -72,7 +123,7 @@ services:
     container_name: hdms-ticket-service
     environment:
       - DEBUG=True
-      - DATABASE_URL=postgresql://hdms_user:hdms_password@postgres:5432/hdms_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
       - USER_SERVICE_URL=http://user-service:8001
       - TICKET_SERVICE_URL=http://ticket-service:8002
@@ -80,19 +131,26 @@ services:
       - FILE_SERVICE_URL=http://file-service:8005
     volumes:
       - ./services/ticket-service/src:/app
+      - ./services/shared:/shared
     ports:
       - "8002:8002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
       user-service:
-        condition: service_started
+        condition: service_healthy  # Changed from service_started
     networks:
       - backend-network
+      - hdms_network
     restart: unless-stopped
-
   # Communication Service
   communication-service:
     build:
@@ -101,7 +159,7 @@ services:
     container_name: hdms-communication-service
     environment:
       - DEBUG=True
-      - DATABASE_URL=postgresql://hdms_user:hdms_password@postgres:5432/hdms_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
       - CHANNEL_LAYER_REDIS=redis://redis:6379/1
       - USER_SERVICE_URL=http://user-service:8001
@@ -110,22 +168,29 @@ services:
       - FILE_SERVICE_URL=http://file-service:8005
     volumes:
       - ./services/communication-service/src:/app
+      - ./services/shared:/shared
     ports:
       - "8003:8003"
       - "8004:8004"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
       user-service:
-        condition: service_started
+        condition: service_healthy  # Changed from service_started
       ticket-service:
-        condition: service_started
+        condition: service_healthy  # Changed from service_started
     networks:
       - backend-network
+      - hdms_network
     restart: unless-stopped
-
   # File Service
   file-service:
     build:
@@ -134,9 +199,8 @@ services:
     container_name: hdms-file-service
     environment:
       - DEBUG=True
-      - DATABASE_URL=postgresql://hdms_user:hdms_password@postgres:5432/hdms_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/2
       - USER_SERVICE_URL=http://user-service:8001
       - TICKET_SERVICE_URL=http://ticket-service:8002
       - COMMUNICATION_SERVICE_URL=http://communication-service:8003
@@ -144,22 +208,28 @@ services:
       - MEDIA_ROOT=/app/media
     volumes:
       - ./services/file-service/src:/app
-      - file_storage:/app/media
+      - ./services/shared:/shared
     ports:
       - "8005:8005"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
       user-service:
-        condition: service_started
+        condition: service_healthy  # Changed from service_started
       ticket-service:
-        condition: service_started
+        condition: service_healthy  # Changed from service_started
     networks:
       - backend-network
+      - hdms_network
     restart: unless-stopped
-
   # Celery Worker (for File Service)
   celery-worker:
     build:
@@ -169,7 +239,7 @@ services:
     command: celery -A core worker -l info
     environment:
       - DEBUG=True
-      - DATABASE_URL=postgresql://hdms_user:hdms_password@postgres:5432/hdms_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/2
       - FILE_SERVICE_URL=http://file-service:8005
@@ -178,10 +248,13 @@ services:
       - ./services/file-service/src:/app
       - file_storage:/app/media
     depends_on:
-      - redis
-      - file-service
+      redis:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
     networks:
       - backend-network
+      - hdms_network
     restart: unless-stopped
 
   # Celery Beat (for Scheduled Tasks)
@@ -193,7 +266,7 @@ services:
     command: celery -A core beat -l info
     environment:
       - DEBUG=True
-      - DATABASE_URL=postgresql://hdms_user:hdms_password@postgres:5432/hdms_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/2
       - FILE_SERVICE_URL=http://file-service:8005
@@ -202,10 +275,13 @@ services:
       - ./services/file-service/src:/app
       - file_storage:/app/media
     depends_on:
-      - redis
-      - file-service
+      redis:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
     networks:
       - backend-network
+      - hdms_network
     restart: unless-stopped
 
   # Frontend Service
@@ -221,7 +297,14 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - nginx
+      user-service:
+        condition: service_healthy
+      ticket-service:
+        condition: service_healthy
+      communication-service:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
     networks:
       - frontend-network
       - backend-network
@@ -238,11 +321,14 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - user-service
-      - ticket-service
-      - communication-service
-      - file-service
-      - frontend-service
+      user-service:
+        condition: service_healthy
+      ticket-service:
+        condition: service_healthy
+      communication-service:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
     networks:
       - frontend-network
       - backend-network
@@ -253,9 +339,12 @@ networks:
     driver: bridge
   backend-network:
     driver: bridge
+  hdms_network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  pgbouncer_data:
   redis_data:
   file_storage:
 

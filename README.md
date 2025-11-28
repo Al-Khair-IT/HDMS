@@ -8,6 +8,46 @@
 
 ## **Quick Start**
 
+### **Prerequisites**
+- Docker Desktop installed and running
+- Docker Compose v2.0+
+
+### **Infrastructure Setup**
+
+1. **Create environment files:**
+   ```bash
+   # Copy root .env.example (if exists) or create .env with:
+   POSTGRES_DB=hdms_db
+   POSTGRES_USER=hdms_user
+   POSTGRES_PASSWORD=change_me_in_production
+   PGBOUNCER_POOL_SIZE=25
+   REDIS_PASSWORD=
+   
+   # Copy service .env.example files to .env in each service directory
+   cp services/user-service/.env.example services/user-service/.env
+   cp services/ticket-service/.env.example services/ticket-service/.env
+   cp services/communication-service/.env.example services/communication-service/.env
+   cp services/file-service/.env.example services/file-service/.env
+   ```
+
+2. **Start infrastructure services:**
+   ```bash
+   # Start PostgreSQL, PgBouncer, and Redis
+   docker-compose up -d postgres pgbouncer redis
+   
+   # Or use the startup script
+   ./scripts/start-infrastructure.sh
+   ```
+
+3. **Verify infrastructure:**
+   ```bash
+   # Verify all connections
+   ./scripts/verify-all-connections.sh
+   
+   # Verify health checks
+   ./scripts/verify-health-checks.sh
+   ```
+
 ### **Start All Services**
 ```bash
 docker-compose up
@@ -24,6 +64,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
 For detailed setup, see [README-Microservices.md](README-Microservices.md)
+For environment variables, see [docs/environment-variables.md](docs/environment-variables.md)
 
 ---
 

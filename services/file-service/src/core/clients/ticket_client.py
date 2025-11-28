@@ -1,31 +1,25 @@
 """
 Ticket Service client for File Service.
 """
-import requests
 from django.conf import settings
+from clients import HTTPClient
 
 
 class TicketClient:
     """Client to communicate with Ticket Service."""
     
     BASE_URL = settings.TICKET_SERVICE_URL
+    _client = HTTPClient()
     
     @classmethod
     def get_ticket(cls, ticket_id: str, token: str = None):
         """Get ticket details from Ticket Service."""
-        headers = {}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
-        
         try:
-            response = requests.get(
+            return cls._client.get_json(
                 f'{cls.BASE_URL}/api/v1/tickets/{ticket_id}',
-                headers=headers,
-                timeout=5
+                token=token
             )
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException:
+        except Exception:
             return None
     
     @classmethod

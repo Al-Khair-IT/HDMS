@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
-import { userService } from '../services/api/userService';
+import { userService, UpdateUserData } from '../services/api/userService';
 import { User } from '../types';
 
 export const useAuth = () => {
@@ -89,7 +89,18 @@ export const useAuth = () => {
     if (!user) return false;
     
     try {
-      const updatedUser = await userService.updateUser(user.id, data);
+      // Convert Partial<User> to UpdateUserData format
+      // Exclude avatar if it's a string (URL), only include if it's a File
+      const updateData: UpdateUserData = {
+        name: data.name,
+        email: data.email,
+        department: data.department,
+        // Only include avatar if it's a File object, not a string URL
+        // Since User.avatar is string | undefined, we check if it's NOT a string
+        avatar: data.avatar && typeof data.avatar !== 'string' ? (data.avatar as File) : undefined,
+      };
+      
+      const updatedUser = await userService.updateUser(user.id, updateData);
       setUser(updatedUser);
       return true;
     } catch (error) {

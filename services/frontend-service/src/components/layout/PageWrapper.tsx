@@ -10,7 +10,7 @@ import { SkeletonLoader } from '../ui/SkeletonLoader';
 import { THEME } from '../../lib/theme';
 
 interface PageWrapperProps {
-  children: ReactNode;
+  children?: ReactNode;
   title?: string;
   description?: string;
   loading?: boolean;

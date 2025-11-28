@@ -385,10 +385,10 @@ const AdminUsersPage: React.FC = () => {
       </Card>
 
       <ConfirmModal
-        open={confirm.open}
+        isOpen={confirm.open}
         title={confirm.action === 'delete' ? 'Delete this user?' : 'Toggle user status?'}
         description={confirm.action === 'delete' ? 'This action cannot be undone.' : 'The user will be activated/deactivated.'}
-        onCancel={() => setConfirm({ open: false })}
+        onClose={() => setConfirm({ open: false })}
         onConfirm={() => {
           setConfirm({ open: false });
         }}

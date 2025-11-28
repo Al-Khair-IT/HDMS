@@ -1,0 +1,32 @@
+﻿# HDMS Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-11-20
+
+## Active Technologies
+- Python 3.12+, Django 5.x + Django 5.x, requests library (for HTTP client), python-decouple (for configuration), uuid (standard library) (002-shared-core-components)
+- PostgreSQL 16 (via PgBouncer) - BaseModel uses Django ORM, no direct storage for shared code (002-shared-core-components)
+
+- Python 3.12+, Docker, Docker Compose + PostgreSQL 16, Redis 7, PgBouncer (latest), Django 5.x (for service configuration) (001-database-infrastructure)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+cd src; pytest; ruff check .
+
+## Code Style
+
+Python 3.12+, Docker, Docker Compose: Follow standard conventions
+
+## Recent Changes
+- 002-shared-core-components: Added Python 3.12+, Django 5.x + Django 5.x, requests library (for HTTP client), python-decouple (for configuration), uuid (standard library)
+
+- 001-database-infrastructure: Added Python 3.12+, Docker, Docker Compose + PostgreSQL 16, Redis 7, PgBouncer (latest), Django 5.x (for service configuration)
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

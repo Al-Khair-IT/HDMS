@@ -1,31 +1,25 @@
 """
 User Service client for File Service.
 """
-import requests
 from django.conf import settings
+from clients import HTTPClient
 
 
 class UserClient:
     """Client to communicate with User Service."""
     
     BASE_URL = settings.USER_SERVICE_URL
+    _client = HTTPClient()
     
     @classmethod
     def get_user(cls, user_id: str, token: str = None):
         """Get user details from User Service."""
-        headers = {}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
-        
         try:
-            response = requests.get(
+            return cls._client.get_json(
                 f'{cls.BASE_URL}/api/v1/users/{user_id}',
-                headers=headers,
-                timeout=5
+                token=token
             )
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException:
+        except Exception:
             return None
     
     @classmethod

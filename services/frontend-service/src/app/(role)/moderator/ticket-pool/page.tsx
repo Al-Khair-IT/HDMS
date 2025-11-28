@@ -25,7 +25,7 @@ export default function TicketPoolPage() {
       try {
         // Try to fetch tickets from pool endpoint, fallback to regular tickets
         const response = await ticketService.getTickets({ status: 'pending' });
-        const ticketsList = Array.isArray(response) ? response : (response?.results || []);
+        const ticketsList = response.results || [];
         setTickets(ticketsList);
       } catch (error: any) {
         // Handle network errors gracefully - API might not be available

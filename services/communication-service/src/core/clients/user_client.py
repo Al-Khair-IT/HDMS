@@ -2,13 +2,18 @@
 User Service client for Communication Service.
 """
 import requests
-from django.conf import settings
+# Remove module-level settings import
 
 
 class UserClient:
     """Client to communicate with User Service."""
     
-    BASE_URL = settings.USER_SERVICE_URL
+    @classmethod
+    def _get_base_url(cls):
+        """Get base URL from settings (lazy access)."""
+        # Import settings only when method is called
+        from django.conf import settings
+        return settings.USER_SERVICE_URL
     
     @classmethod
     def get_user(cls, user_id: str, token: str = None):
@@ -19,12 +24,17 @@ class UserClient:
         
         try:
             response = requests.get(
-                f'{cls.BASE_URL}/api/v1/users/{user_id}',
+                f'{cls._get_base_url()}/api/v1/users/{user_id}',
                 headers=headers,
                 timeout=5
             )
             response.raise_for_status()
             return response.json()
+        except requests.ConnectionError:
+            # Service not ready yet, return None instead of crashing
+            return None
+        except requests.Timeout:
+            return None
         except requests.RequestException:
             return None
     

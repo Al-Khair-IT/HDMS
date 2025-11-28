@@ -5,10 +5,10 @@
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ticketService } from '../services/api/ticketService';
+import { ticketService, CreateTicketData, UpdateTicketData } from '../services/api/ticketService';
 import { useTicketStore } from '../store/ticketStore';
 import { useUIStore } from '../store/uiStore';
-import { Ticket, CreateTicketData, UpdateTicketData } from '../types';
+import { Ticket } from '../types';
 
 export const useTicketActions = () => {
   const router = useRouter();

@@ -2,11 +2,59 @@
 Base Django settings for File Service.
 """
 import os
+import sys
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Add shared directory to Python path for importing shared code
+# Try Docker mount path first, then fallback to relative path
+docker_shared_path = Path('/shared/core')
+local_shared_path = BASE_DIR.parent.parent.parent / 'shared' / 'core'
+SHARED_PATH = docker_shared_path if docker_shared_path.exists() else local_shared_path
+if str(SHARED_PATH) not in sys.path:
+    sys.path.insert(0, str(SHARED_PATH))
+
+# Import shared logging configuration
+try:
+    from logging_config import get_logging_config
+except ImportError:
+    # Fallback if shared code not available
+    def get_logging_config():
+        return {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'verbose': {
+                    'format': '{levelname} {asctime} {module} {message}',
+                    'style': '{',
+                },
+            },
+            'handlers': {
+                'console': {
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'verbose',
+                },
+            },
+            'root': {
+                'handlers': ['console'],
+                'level': 'INFO',
+            },
+            'loggers': {
+                'django': {
+                    'handlers': ['console'],
+                    'level': 'INFO',
+                    'propagate': False,
+                },
+                'apps': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+            },
+        }
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
@@ -21,6 +69,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'ninja',
+    # Shared apps
+    'users',  # Shared User model
+    'departments',  # Referenced by User model
+    # Local apps
     'apps.files',
 ]
 
@@ -34,6 +86,21 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
 ROOT_URLCONF = 'core.urls'
 WSGI_APPLICATION = 'core.wsgi.application'
 
@@ -42,11 +109,30 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('DB_NAME', default='hdms_db'),
         'USER': config('DB_USER', default='hdms_user'),
-        'PASSWORD': config('DB_PASSWORD', default='hdms_password'),
-        'HOST': config('DB_HOST', default='postgres'),
-        'PORT': config('DB_PORT', default='5432'),
+        'PASSWORD': config('DB_PASSWORD', default='hdms_pwd'),
+        'HOST': config('DB_HOST', default='pgbouncer'),  # Connect through PgBouncer
+        'PORT': config('DB_PORT', default='6432'),  # PgBouncer port
+        'CONN_MAX_AGE': 0,
+        'OPTIONS': {
+            'connect_timeout': int(config('DB_CONNECT_TIMEOUT', default=20))
+            # Note: 'options' parameter not supported by PgBouncer in transaction pooling mode
+        }
     }
 }
+
+# Cache Configuration (Redis)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
+REDIS_URL = f"redis://:{REDIS_PASSWORD}@redis:6379/0" if REDIS_PASSWORD else "redis://redis:6379/0"
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': REDIS_URL,
+    }
+}
+
+# Connection error handling is managed by Django ORM, cache framework, and Celery
+# Errors will be logged automatically via Django's logging configuration
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -67,9 +153,26 @@ MEDIA_ROOT = config('MEDIA_ROOT', default=BASE_DIR / 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Celery Configuration
-CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://redis:6379/2')
-CELERY_RESULT_BACKEND = config('CELERY_BROKER_URL', default='redis://redis:6379/2')
+# Use shared User model - users app is in shared directory
+# In Docker: /shared/apps/users, Locally: ../../shared/apps
+docker_shared_apps = Path('/shared/apps')
+local_shared_apps = BASE_DIR.parent.parent.parent / 'shared' / 'apps'
+shared_apps_path = docker_shared_apps if docker_shared_apps.exists() else local_shared_apps
+
+if str(shared_apps_path) not in sys.path:
+    sys.path.insert(0, str(shared_apps_path))
+
+AUTH_USER_MODEL = 'users.User'
+
+
+
+# Celery Configuration (Redis database 2)
+REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
+if REDIS_PASSWORD:
+    CELERY_BROKER_URL = f"redis://:{REDIS_PASSWORD}@redis:6379/2"
+else:
+    CELERY_BROKER_URL = "redis://redis:6379/2"
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('ACCESS_TOKEN_LIFETIME', default=60, cast=int)),
@@ -99,38 +202,7 @@ ALLOWED_IMAGE_TYPES = config('ALLOWED_IMAGE_TYPES', default='image/jpeg,image/pn
 ALLOWED_DOCUMENT_TYPES = config('ALLOWED_DOCUMENT_TYPES', default='application/pdf,text/plain').split(',')
 ALLOWED_VIDEO_TYPES = config('ALLOWED_VIDEO_TYPES', default='video/mp4').split(',')
 
-# Logging
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'apps': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-    },
-}
+# Logging - use shared logging configuration
+LOGGING = get_logging_config()
 
 

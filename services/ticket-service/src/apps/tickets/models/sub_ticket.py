@@ -11,25 +11,19 @@ if str(shared_path) not in sys.path:
     sys.path.insert(0, str(shared_path))
 
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django_fsm import FSMField, transition
 from django.utils import timezone
 from .ticket import TicketStatus, Priority
 
-# Import BaseModel from shared
-try:
-    from models import BaseModel
-except ImportError:
-    # Fallback - create minimal BaseModel
-    import uuid
-    from django.db import models as django_models
-    class BaseModel(django_models.Model):
-        id = django_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-        is_deleted = django_models.BooleanField(default=False, db_index=True)
-        deleted_at = django_models.DateTimeField(null=True, blank=True)
-        created_at = django_models.DateTimeField(auto_now_add=True)
-        updated_at = django_models.DateTimeField(auto_now=True)
-        class Meta:
-            abstract = True
+# Add shared directory to Python path (needed before model imports)
+docker_shared_path = Path('/shared/core')
+local_shared_path = Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent / 'shared' / 'core'
+shared_path = docker_shared_path if docker_shared_path.exists() else local_shared_path
+if str(shared_path) not in sys.path:
+    sys.path.insert(0, str(shared_path))
+
+from models import BaseModel
 
 
 class SubTicket(BaseModel):
@@ -49,7 +43,7 @@ class SubTicket(BaseModel):
     assignee_id = models.UUIDField(null=True, blank=True, db_index=True)
     
     # Progress
-    progress_percent = models.IntegerField(default=0, validators=[models.MinValueValidator(0), models.MaxValueValidator(100)])
+    progress_percent = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     
     # Version and Reopen
     version = models.IntegerField(default=1)

@@ -2,20 +2,21 @@
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '../../../../lib/auth';
+import { useAuth } from '@/lib/auth';
 import { 
   ArrowLeft
 } from 'lucide-react';
-import { THEME } from '../../../../lib/theme';
-import { TimelineSection } from '../../../../components/common/TimelineSection';
-import { RequesterDetailsCard } from '../../../../components/common/RequesterDetailsCard';
-import { StatusLabelBadge } from '../../../../components/common/StatusLabelBadge';
-import { StatusUpdateSection } from '../../../../components/common/StatusUpdateSection';
+import { THEME } from '@/lib/theme';
+import { TimelineSection } from '@/components/common/TimelineSection';
+import { RequesterDetailsCard } from '@/components/common/RequesterDetailsCard';
+import { StatusLabelBadge } from '@/components/common/StatusLabelBadge';
+import { StatusUpdateSection } from '@/components/common/StatusUpdateSection';
+import { useTicketStore } from '@/store/ticketStore';
 
 const AssigneeTaskDetailPage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
-  const { tickets } = useAuth();
+  const { tickets } = useTicketStore();
   const ticketId = params.id as string;
   
   const ticket = tickets.find(t => t.id === ticketId);

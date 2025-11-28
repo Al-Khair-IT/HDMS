@@ -8,12 +8,13 @@ export const formatDate = (dateString: string | Date, format: 'short' | 'long' |
   
   if (isNaN(date.getTime())) return 'Invalid Date';
   
-  const options: Intl.DateTimeFormatOptions = {
+  const formatOptions: Record<'short' | 'long' | 'time', Intl.DateTimeFormatOptions> = {
     short: { year: 'numeric', month: 'short', day: 'numeric' },
     long: { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' },
     time: { hour: '2-digit', minute: '2-digit' },
-  }[format];
+  };
   
+  const options = formatOptions[format];
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
 

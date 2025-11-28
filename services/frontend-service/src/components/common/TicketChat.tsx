@@ -340,5 +340,6 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId }) => {
 };
 
 export default TicketChat;
+export { TicketChat };
 
 

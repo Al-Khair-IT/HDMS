@@ -6,6 +6,7 @@
       "dom.iterable",
       "esnext"
     ],
+    "types": ["node"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -22,9 +23,6 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "typeRoots": [
-      "./node_modules/@types"
-    ],
     "plugins": [
       {
         "name": "next"

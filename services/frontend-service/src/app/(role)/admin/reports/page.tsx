@@ -64,7 +64,7 @@ const AdminReportsPage: React.FC = () => {
           setTickets([]);
         } else {
           // Success - process tickets
-          const ticketsList = Array.isArray(ticketsResult) ? ticketsResult : (ticketsResult?.results || []);
+          const ticketsList = ticketsResult?.results || [];
           setTickets(ticketsList);
         }
       } catch (error: any) {
