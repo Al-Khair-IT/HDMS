@@ -1,22 +1,44 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/Button';
 import { useRouter } from 'next/navigation';
 
-type Education = { id: string; degree: string; institute: string; passingYear: string };
-type Experience = { id: string; employer: string; jobTitle: string; startDate: string; endDate: string; responsibilities: string };
+type Education = {
+  id: string;
+  degree: string;
+  institute: string;
+  passingYear: string;
+};
 
-const newEducation = (): Education => ({ id: String(Date.now()) + Math.random(), degree: '', institute: '', passingYear: '' });
-const newExperience = (): Experience => ({ id: String(Date.now()) + Math.random(), employer: '', jobTitle: '', startDate: '', endDate: '', responsibilities: '' });
+type Experience = {
+  id: string;
+  employer: string;
+  jobTitle: string;
+  startDate: string;
+  endDate: string;
+  responsibilities: string;
+};
+
+const newEducation = (): Education => ({
+  id: String(Date.now() + Math.random()),
+  degree: '',
+  institute: '',
+  passingYear: '',
+});
+
+const newExperience = (): Experience => ({
+  id: String(Date.now() + Math.random()),
+  employer: '',
+  jobTitle: '',
+  startDate: '',
+  endDate: '',
+  responsibilities: '',
+});
 
 const EmployeeForm: React.FC = () => {
   const router = useRouter();
-
-  // Auto-generated IDs
-  const [employeeId] = useState(() => `EMP-${Date.now().toString().slice(-6)}`);
-  const [employeeCode] = useState(() => `ECODE${Math.floor(Math.random() * 9000) + 1000}`);
 
   // Personal
   const [fullName, setFullName] = useState('');
@@ -25,6 +47,11 @@ const EmployeeForm: React.FC = () => {
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [nationality, setNationality] = useState('');
   const [religion, setReligion] = useState('');
+
+  // Dropdown data
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
+  const [filteredDesignations, setFilteredDesignations] = useState<any[]>([]);
 
   // Contact
   const [personalEmail, setPersonalEmail] = useState('');
@@ -56,15 +83,129 @@ const EmployeeForm: React.FC = () => {
   // Resume
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
-  const addEducation = () => setEducation(prev => [...prev, newEducation()]);
-  const removeEducation = (id: string) => setEducation(prev => prev.filter(e => e.id !== id));
+  // Error handling
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [generalError, setGeneralError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const addExperience = () => setExperience(prev => [...prev, newExperience()]);
-  const removeExperience = (id: string) => setExperience(prev => prev.filter(e => e.id !== id));
+  /* ------------------------------------------------------------------ */
+  /* Fetch departments & designations                                   */
+  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/departments');
+        const data = await res.json();
+        setDepartments(data);
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+      }
+    };
+
+    const fetchDesignations = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/designations');
+        const data = await res.json();
+        setDesignations(data);
+      } catch (err) {
+        console.error('Failed to fetch designations:', err);
+      }
+    };
+
+    fetchDepartments();
+    fetchDesignations();
+  }, []);
+
+  /* ------------------------------------------------------------------ */
+  /* Filter designations when department changes                         */
+  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    if (department) {
+      const filtered = designations.filter(
+        (d) => d.department__dept_code === department
+      );
+      setFilteredDesignations(filtered);
+    } else {
+      setFilteredDesignations([]);
+    }
+  }, [department, designations]);
+
+  /* ------------------------------------------------------------------ */
+  /* Input Formatting Helpers                                           */
+  /* ------------------------------------------------------------------ */
+  const formatCNIC = (value: string) => {
+    // Remove all non-digits
+    const cleaned = value.replace(/\D/g, '');
+    // Limit to 13 digits
+    const limited = cleaned.substring(0, 13);
+    // Format as XXXXX-XXXXXXX-X
+    if (limited.length > 12) {
+      return `${limited.slice(0, 5)}-${limited.slice(5, 12)}-${limited.slice(12)}`;
+    } else if (limited.length > 5) {
+      return `${limited.slice(0, 5)}-${limited.slice(5)}`;
+    }
+    return limited;
+  };
+
+  const formatPhone = (value: string) => {
+    // Remove all non-digits and + sign
+    let cleaned = value.replace(/[^\d+]/g, '');
+    // Limit to reasonable phone length (e.g., +92-XXX-XXXXXXX = 15 chars)
+    return cleaned.substring(0, 15);
+  };
+
+  const handleCNICChange = (value: string) => {
+    const formatted = formatCNIC(value);
+    setCnic(formatted);
+    clearFieldError('cnic');
+  };
+
+  const handleMobileChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setMobile(formatted);
+    clearFieldError('mobile');
+  };
+
+  const handleEmergencyPhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setEmergencyPhone(formatted);
+  };
+
+  const handleOrgPhoneChange = (value: string) => {
+    const formatted = formatPhone(value);
+    setOrgPhone(formatted);
+  };
+
+  const handleAccountNumberChange = (value: string) => {
+    // Only allow numbers for account number
+    const cleaned = value.replace(/\D/g, '');
+    setAccountNumber(cleaned.substring(0, 25)); // Limit to 25 digits
+    clearFieldError('accountNumber');
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Helpers                                                            */
+  /* ------------------------------------------------------------------ */
+  const addEducation = () => setEducation((prev) => [...prev, newEducation()]);
+  const removeEducation = (id: string) =>
+    setEducation((prev) => prev.filter((e) => e.id !== id));
+
+  const addExperience = () =>
+    setExperience((prev) => [...prev, newExperience()]);
+  const removeExperience = (id: string) =>
+    setExperience((prev) => prev.filter((e) => e.id !== id));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+    const file = e.target.files?.[0] ?? null;
     setResumeFile(file);
+  };
+
+  const clearFieldError = (fieldName: string) => {
+    setFieldErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
+    });
   };
 
   const validate = () => {
@@ -72,22 +213,27 @@ const EmployeeForm: React.FC = () => {
     if (!personalEmail.trim()) return 'Personal email is required';
     if (!mobile.trim()) return 'Mobile number is required';
     if (!residentialAddress.trim()) return 'Residential address is required';
-    if (!bankName.trim() || !accountNumber.trim()) return 'Bank information is required';
+    if (!bankName.trim() || !accountNumber.trim())
+      return 'Bank information is required';
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setFieldErrors({});
+    setGeneralError('');
+    
     const err = validate();
     if (err) {
-      alert(err);
+      setGeneralError(err);
       return;
     }
+    
+    setIsLoading(true);
 
-    // Build payload
-    const payload: any = {
-      employeeId,
-      employeeCode,
+    const payload = {
       fullName,
       dob,
       cnic,
@@ -114,286 +260,634 @@ const EmployeeForm: React.FC = () => {
     };
 
     try {
-      // Save to localStorage for demo
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('employees');
-        const existing = stored ? JSON.parse(stored) : [];
-        const updated = [...existing, payload];
-        localStorage.setItem('employees', JSON.stringify(updated));
+      const response = await fetch('http://localhost:8000/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle field-level errors
+        if (data.field_errors) {
+          setFieldErrors(data.field_errors);
+          setGeneralError(data.error || 'Please fix the validation errors below');
+        } else {
+          setGeneralError(data.error || 'Failed to create employee');
+        }
+        setIsLoading(false);
+        return;
       }
 
-      if (resumeFile) {
-        const form = new FormData();
-        form.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-        form.append('resume', resumeFile);
-        // Demo: POST to placeholder route
-        try {
-          await fetch('/api/admin/employees', { method: 'POST', body: form });
-        } catch {
-          // Ignore errors for demo API
-        }
-      }
+      // Success!
+      alert(
+        `✅ Employee created successfully!\n\nEmployee ID: ${data.employee_id}\nEmployee Code: ${data.employee_code}`
+      );
+      router.push('/admin/employees');
       
-      alert('Employee created successfully!');
-      router.push(`/${'admin'}/employees`);
     } catch (error) {
-      console.error(error);
-      alert('Failed to save employee');
+      console.error('Error:', error);
+      setGeneralError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  /* ------------------------------------------------------------------ */
+  /* Helper to get field error class                                    */
+  /* ------------------------------------------------------------------ */
+  const getFieldClass = (fieldName: string) => {
+    const baseClass = "w-full px-4 py-2 border rounded-lg";
+    return fieldErrors[fieldName] 
+      ? `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500` 
+      : baseClass;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Render                                                             */
+  /* ------------------------------------------------------------------ */
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" type="button" onClick={() => router.back()}>Back</Button>
-          <h2 className="text-xl font-bold">Create Employee</h2>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" type="button" onClick={() => router.back()}>
+            Back
+          </Button>
+          <h2 className="text-2xl font-bold">Create Employee</h2>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="bg-white rounded-xl shadow">
+      {/* General Error Display */}
+      {generalError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start">
+            <span className="text-red-600 font-semibold">⚠️ {generalError}</span>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Personal Information */}
+        <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Full Name *</label>
-                <input value={fullName} onChange={e => setFullName(e.target.value)} className="w-full px-3 py-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date of Birth</label>
-                <input type="date" value={dob} onChange={e => setDob(e.target.value)} className="w-full px-3 py-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">CNIC</label>
-                <input value={cnic} onChange={e => setCnic(e.target.value)} className="w-full px-3 py-2 border rounded" placeholder="12345-1234567-1" />
-              </div>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium mb-1">Full Name *</label>
+              <input
+                value={fullName}
+                onChange={(e) =>{
+                  setFullName(e.target.value);
+                  clearFieldError('fullName');
+                }}
+                className={getFieldClass('fullName')}
+                required
+                disabled={isLoading}
+              />
+              {fieldErrors.fullName && (
+                <p className="text-red-500 text-sm mt-1">{fieldErrors.fullName[0]}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Date of Birth</label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => {
+                  setDob(e.target.value);
+                  clearFieldError('dob');
+                }}
+                className={getFieldClass('dob')}
+                disabled={isLoading}
+              />
+              {fieldErrors.dob && (
+                <p className="text-red-500 text-sm mt-1">{fieldErrors.dob[0]}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">CNIC (13 digits)</label>
+              <input
+                value={cnic}
+                onChange={(e) => handleCNICChange(e.target.value)}
+                placeholder="12345-1234567-1"
+                className={getFieldClass('cnic')}
+                disabled={isLoading}
+                maxLength={15}
+              />
+              {fieldErrors.cnic && (
+                <p className="text-red-500 text-sm mt-1">{fieldErrors.cnic[0]}</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Gender</label>
-                <select value={gender} onChange={e => setGender(e.target.value as any)} className="w-full px-3 py-2 border rounded">
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Nationality</label>
-                <input value={nationality} onChange={e => setNationality(e.target.value)} className="w-full px-3 py-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Religion</label>
-                <input value={religion} onChange={e => setReligion(e.target.value)} className="w-full px-3 py-2 border rounded" />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Gender</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value as any)}
+                className={getFieldClass('gender')}
+                disabled={isLoading}
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Nationality</label>
+              <input
+                value={nationality}
+                onChange={(e) => setNationality(e.target.value)}
+                className={getFieldClass('nationality')}
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Religion</label>
+              <input
+                value={religion}
+                onChange={(e) => setReligion(e.target.value)}
+                className={getFieldClass('religion')}
+                disabled={isLoading}
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Contact Information */}
+        <Card>
           <CardHeader>
             <CardTitle>Contact Information</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Personal Email *</label>
-                <input type="email" value={personalEmail} onChange={e => setPersonalEmail(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  type="email"
+                  value={personalEmail}
+                  onChange={(e) => {
+                    setPersonalEmail(e.target.value);
+                    clearFieldError('personalEmail');
+                  }}
+                  className={getFieldClass('personalEmail')}
+                  required
+                  disabled={isLoading}
+                />
+                {fieldErrors.personalEmail && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.personalEmail[0]}</p>
+                )}
               </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-1">Mobile Number *</label>
-                <input value={mobile} onChange={e => setMobile(e.target.value)} placeholder="+92-3XX-XXXXXXX" className="w-full px-3 py-2 border rounded" />
+                <input
+                  value={mobile}
+                  onChange={(e) => handleMobileChange(e.target.value)}
+                  placeholder="+92-XXX-XXXXXXX"
+                  className={getFieldClass('mobile')}
+                  required
+                  disabled={isLoading}
+                />
+                {fieldErrors.mobile && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.mobile[0]}</p>
+                )}
               </div>
+              
               <div>
                 <label className="block text-sm font-medium mb-1">Emergency Phone</label>
-                <input value={emergencyPhone} onChange={e => setEmergencyPhone(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  value={emergencyPhone}
+                  onChange={(e) => handleEmergencyPhoneChange(e.target.value)}
+                  className={getFieldClass('emergencyPhone')}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 
-            <div className="mt-4">
+            <div>
               <label className="block text-sm font-medium mb-1">Residential Address *</label>
-              <input value={residentialAddress} onChange={e => setResidentialAddress(e.target.value)} className="w-full px-3 py-2 border rounded" />
+              <input
+                value={residentialAddress}
+                onChange={(e) => {
+                  setResidentialAddress(e.target.value);
+                  clearFieldError('residentialAddress');
+                }}
+                className={getFieldClass('residentialAddress')}
+                required
+                disabled={isLoading}
+              />
+              {fieldErrors.residentialAddress && (
+                <p className="text-red-500 text-sm mt-1">{fieldErrors.residentialAddress[0]}</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Permanent Address</label>
-                <input value={permanentAddress} onChange={e => setPermanentAddress(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  value={permanentAddress}
+                  onChange={(e) => setPermanentAddress(e.target.value)}
+                  className={getFieldClass('permanentAddress')}
+                  disabled={isLoading}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">City</label>
-                <input value={city} onChange={e => setCity(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className={getFieldClass('city')}
+                  disabled={isLoading}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">State</label>
-                <input value={state} onChange={e => setState(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className={getFieldClass('state')}
+                  disabled={isLoading}
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Employment Details */}
+        <Card>
           <CardHeader>
             <CardTitle>Employment Details</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-1">Department</label>
-                <input value={department} onChange={e => setDepartment(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <label className="block text-sm font-medium mb-1">Department *</label>
+                <select
+                  value={department}
+                  onChange={(e) => {
+                    setDepartment(e.target.value);
+                    clearFieldError('department');
+                  }}
+                  className={getFieldClass('department')}
+                  required
+                  disabled={isLoading}
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept.dept_code} value={dept.dept_code}>
+                      {dept.dept_code} - {dept.dept_name}
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.department && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.department[0]}</p>
+                )}
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Designation</label>
-                <input value={designation} onChange={e => setDesignation(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <label className="block text-sm font-medium mb-1">Designation *</label>
+                <select
+                  value={designation}
+                  onChange={(e) => {
+                    setDesignation(e.target.value);
+                    clearFieldError('designation');
+                  }}
+                  className={getFieldClass('designation')}
+                  required
+                  disabled={!department || isLoading}
+                >
+                  <option value="">Select Designation</option>
+                  {filteredDesignations.map((desig) => (
+                    <option key={desig.position_code} value={desig.position_code}>
+                      {desig.position_code} - {desig.position_name}
+                    </option>
+                  ))}
+                </select>
+                {!department && (
+                  <p className="text-sm text-gray-500 mt-1">Select department first</p>
+                )}
+                {fieldErrors.designation && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.designation[0]}</p>
+                )}
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">Employee ID (auto)</label>
-                <input value={employeeId} readOnly className="w-full px-3 py-2 border rounded bg-gray-50" />
+                <label className="block text-sm font-medium mb-1">Date of Joining</label>
+                <input
+                  type="date"
+                  value={dateOfJoining}
+                  onChange={(e) => {
+                    setDateOfJoining(e.target.value);
+                    clearFieldError('dateOfJoining');
+                  }}
+                  className={getFieldClass('dateOfJoining')}
+                  disabled={isLoading}
+                />
+                {fieldErrors.dateOfJoining && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.dateOfJoining[0]}</p>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Employee Code (auto)</label>
-                <input value={employeeCode} readOnly className="w-full px-3 py-2 border rounded bg-gray-50" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date of Joining</label>
-                <input type="date" value={dateOfJoining} onChange={e => setDateOfJoining(e.target.value)} className="w-full px-3 py-2 border rounded" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Employment Type</label>
-                <select value={employmentType} onChange={e => setEmploymentType(e.target.value)} className="w-full px-3 py-2 border rounded">
-                  <option>Full-time</option>
-                  <option>Part-time</option>
-                  <option>Contract</option>
-                  <option>Intern</option>
-                </select>
-              </div>
+            <div className="col-span-1 md:col-span-3">
+              <label className="block text-sm font-medium mb-1">Employment Type</label>
+              <select
+                value={employmentType}
+                onChange={(e) => setEmploymentType(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+                disabled={isLoading}
+              >
+                <option>Full-time</option>
+                <option>Part-time</option>
+                <option>Contract</option>
+                <option>Intern</option>
+              </select>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Bank Information */}
+        <Card>
           <CardHeader>
             <CardTitle>Bank Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Bank Name *</label>
-                <input value={bankName} onChange={e => setBankName(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  value={bankName}
+                  onChange={(e) => {
+                    setBankName(e.target.value);
+                    clearFieldError('bankName');
+                  }}
+                  className={getFieldClass('bankName')}
+                  required
+                  disabled={isLoading}
+                />
+                {fieldErrors.bankName && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.bankName[0]}</p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Account Number *</label>
-                <input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <label className="block text-sm font-medium mb-1">Account Number * (Numbers only)</label>
+                <input
+                  value={accountNumber}
+                  onChange={(e) => handleAccountNumberChange(e.target.value)}
+                  className={getFieldClass('accountNumber')}
+                  required
+                  disabled={isLoading}
+                  placeholder="Enter numbers only"
+                />
+                {fieldErrors.accountNumber && (
+                  <p className="text-red-500 text-sm mt-1">{fieldErrors.accountNumber[0]}</p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Provided By Organization */}
+        <Card>
           <CardHeader>
             <CardTitle>Provided By Organization</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <input value={orgEmail} onChange={e => setOrgEmail(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <input
+                  type="email"
+                  value={orgEmail}
+                  onChange={(e) => setOrgEmail(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  disabled={isLoading}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Phone Number</label>
-                <input value={orgPhone} onChange={e => setOrgPhone(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <label className=" text-sm font-medium mb-1">Phone Number</label>
+                <input
+                  value={orgPhone}
+                  onChange={(e) => handleOrgPhoneChange(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  disabled={isLoading}
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Educational History */}
+        <Card>
           <CardHeader>
             <CardTitle>Educational History</CardTitle>
           </CardHeader>
           <CardContent>
             {education.map((edu, idx) => (
-              <div key={edu.id} className="border p-4 rounded mb-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div key={edu.id} className="border p-5 rounded-lg mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm mb-1">Degree/Certificate</label>
-                    <input value={edu.degree} onChange={e => setEducation(prev => prev.map(p => p.id === edu.id ? { ...p, degree: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      value={edu.degree}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((p) => (p.id === edu.id ? { ...p, degree: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm mb-1">Institute Name</label>
-                    <input value={edu.institute} onChange={e => setEducation(prev => prev.map(p => p.id === edu.id ? { ...p, institute: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      value={edu.institute}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((p) => (p.id === edu.id ? { ...p, institute: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm mb-1">Passing Year</label>
-                    <input value={edu.passingYear} onChange={e => setEducation(prev => prev.map(p => p.id === edu.id ? { ...p, passingYear: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      value={edu.passingYear}
+                      onChange={(e) =>
+                        setEducation((prev) =>
+                          prev.map((p) => (p.id === edu.id ? { ...p, passingYear: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                      maxLength={4}
+                    />
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  {education.length > 1 && <Button variant="outline" type="button" onClick={() => removeEducation(edu.id)}>Remove</Button>}
-                  {idx === education.length - 1 && <Button type="button" onClick={addEducation}>Add Education</Button>}
+
+                <div className="flex gap-3 mt-4">
+                  {education.length > 1 && (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => removeEducation(edu.id)}
+                      disabled={isLoading}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                  {idx === education.length - 1 && (
+                    <Button type="button" onClick={addEducation} disabled={isLoading}>
+                      Add Education
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Work Experience */}
+        <Card>
           <CardHeader>
             <CardTitle>Work Experience</CardTitle>
           </CardHeader>
           <CardContent>
             {experience.map((exp, idx) => (
-              <div key={exp.id} className="border p-4 rounded mb-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div key={exp.id} className="border p-5 rounded-lg mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm mb-1">Employer</label>
-                    <input value={exp.employer} onChange={e => setExperience(prev => prev.map(p => p.id === exp.id ? { ...p, employer: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      value={exp.employer}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((p) => (p.id === exp.id ? { ...p, employer: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm mb-1">Job Title</label>
-                    <input value={exp.jobTitle} onChange={e => setExperience(prev => prev.map(p => p.id === exp.id ? { ...p, jobTitle: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      value={exp.jobTitle}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((p) => (p.id === exp.id ? { ...p, jobTitle: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm mb-1">Start Date</label>
-                    <input type="date" value={exp.startDate} onChange={e => setExperience(prev => prev.map(p => p.id === exp.id ? { ...p, startDate: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      type="date"
+                      value={exp.startDate}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((p) => (p.id === exp.id ? { ...p, startDate: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
                     <label className="block text-sm mb-1">End Date</label>
-                    <input type="date" value={exp.endDate} onChange={e => setExperience(prev => prev.map(p => p.id === exp.id ? { ...p, endDate: e.target.value } : p))} className="w-full px-3 py-2 border rounded" />
+                    <input
+                      type="date"
+                      value={exp.endDate}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((p) => (p.id === exp.id ? { ...p, endDate: e.target.value } : p))
+                        )
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm mb-1">Key Responsibilities</label>
-                    <textarea value={exp.responsibilities} onChange={e => setExperience(prev => prev.map(p => p.id === exp.id ? { ...p, responsibilities: e.target.value } : p))} className="w-full px-3 py-2 border rounded" rows={3} />
+                    <textarea
+                      value={exp.responsibilities}
+                      onChange={(e) =>
+                        setExperience((prev) =>
+                          prev.map((p) => (p.id === exp.id ? { ...p, responsibilities: e.target.value } : p))
+                        )
+                      }
+                      rows={4}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      disabled={isLoading}
+                    />
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  {experience.length > 1 && <Button variant="outline" type="button" onClick={() => removeExperience(exp.id)}>Remove</Button>}
-                  {idx === experience.length - 1 && <Button type="button" onClick={addExperience}>Add Experience</Button>}
+
+                <div className="flex gap-3 mt-4">
+                  {experience.length > 1 && (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => removeExperience(exp.id)}
+                      disabled={isLoading}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                  {idx === experience.length - 1 && (
+                    <Button type="button" onClick={addExperience} disabled={isLoading}>
+                      Add Experience
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="bg-white rounded-xl shadow">
+        {/* Resume */}
+        <Card>
           <CardHeader>
             <CardTitle>Resume</CardTitle>
           </CardHeader>
           <CardContent>
-            <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              disabled={isLoading}
+            />
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" type="button" onClick={() => router.push(`/${'admin'}/employees`)}>Cancel</Button>
-          <Button type="submit">Create Employee</Button>
+        {/* Submit / Cancel */}
+        <div className="flex justify-end gap-4">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => router.push('/admin/employees')}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Creating...' : 'Create Employee'}
+          </Button>
         </div>
       </form>
     </div>

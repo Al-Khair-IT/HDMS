@@ -6,144 +6,135 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../../compone
 import { Button } from '../../../../../components/ui/Button';
 import { THEME } from '../../../../../lib/theme';
 
+interface Department {
+  dept_code: string;
+  dept_name: string;
+  dept_sector: string;
+}
+
+interface Designation {
+  position_code: string;
+  position_name: string;
+}
+
+interface Education {
+  degree: string;
+  institute: string;
+  passingYear: string;
+}
+
+interface Experience {
+  employer: string;
+  jobTitle: string;
+  startDate: string;
+  endDate: string;
+  responsibilities: string;
+}
+
 interface Employee {
-  employeeId: string;
-  employeeCode: string;
-  fullName: string;
-  dob: string;
+  employee_id: string;
+  employee_code: string;
+  full_name: string;
+  email: string;
+  phone: string;
   cnic: string;
+  dob: string | null;
   gender: string;
-  nationality: string;
-  religion: string;
-  personalEmail: string;
-  mobile: string;
-  emergencyPhone: string;
-  residentialAddress: string;
-  permanentAddress: string;
-  city: string;
-  state: string;
-  department: string;
-  designation: string;
-  dateOfJoining: string;
-  employmentType: string;
-  bankName: string;
-  accountNumber: string;
-  orgEmail: string;
-  orgPhone: string;
-  education: Array<{ id: string; degree: string; institute: string; passingYear: string }>;
-  experience: Array<{ id: string; employer: string; jobTitle: string; startDate: string; endDate: string; responsibilities: string }>;
+  nationality: string | null;
+  religion: string | null;
+  emergency_contact_phone: string | null;
+  residential_address: string;
+  permanent_address: string | null;
+  city: string | null;
+  state: string | null;
+  department: Department | null;
+  designation: Designation | null;
+  joining_date: string | null;
+  employment_type: string;
+  employment_type_value: string;
+  organization_phone: string | null;
+  bank_name: string;
+  account_number: string;
+  education_history: Education[] | null;
+  work_experience: Experience[] | null;
+  resume: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 const EmployeeDetailPage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
   const employeeId = params.id as string;
-  const [employee, setEmployee] = useState<Employee | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Employee | null>(null);
 
-  const getDefaultEmployees = () => Array.from({ length: 8 }).map((_, i) => ({
-    employeeId: `EMP${String(i + 1).padStart(4, '0')}`,
-    employeeCode: `ECODE${1000 + i}`,
-    fullName: `Employee ${i + 1}`,
-    dob: new Date(1990 + (i % 5), i % 12, (i + 1) * 2).toISOString().slice(0, 10),
-    cnic: `${String(i + 1).padStart(5, '0')}-1234567-${i + 1}`,
-    gender: i % 2 === 0 ? 'male' : 'female',
-    nationality: 'Pakistan',
-    religion: 'Islam',
-    personalEmail: `employee${i + 1}@example.com`,
-    mobile: `+92-300-${String(i).padStart(7, '0')}`,
-    emergencyPhone: `+92-321-${String(i).padStart(7, '0')}`,
-    residentialAddress: `${100 + i} Street, City ${String.fromCharCode(65 + (i % 3))}`,
-    permanentAddress: `${100 + i} Avenue, City ${String.fromCharCode(65 + (i % 3))}`,
-    city: ['Karachi', 'Lahore', 'Islamabad'][i % 3],
-    state: 'Sindh',
-    department: ['IT', 'Finance', 'Procurement', 'HR'][i % 4],
-    designation: ['Developer', 'Analyst', 'Technician', 'Supervisor'][i % 4],
-    dateOfJoining: new Date(2024, i % 12, (i + 1) * 2).toISOString().slice(0, 10),
-    employmentType: 'Full-time',
-    bankName: 'Bank of Pakistan',
-    accountNumber: `${10000 + i}`,
-    orgEmail: `emp${i + 1}@company.com`,
-    orgPhone: `+92-42-${String(i).padStart(7, '0')}`,
-    education: [
-      { id: `edu${i}-1`, degree: 'Bachelor of Science', institute: 'University of Karachi', passingYear: '2020' },
-      { id: `edu${i}-2`, degree: 'Master of Business Administration', institute: 'IBA', passingYear: '2022' }
-    ],
-    experience: [
-      { id: `exp${i}-1`, employer: 'Previous Company Inc.', jobTitle: 'Senior Developer', startDate: '2021-01-15', endDate: '2023-12-31', responsibilities: 'Led development team, architected microservices' }
-    ]
-  }));
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('employees') : null;
-    let employees = [];
-    
-    if (stored) {
+    const fetchEmployee = async () => {
+      setIsLoading(true);
       try {
-        employees = JSON.parse(stored);
-      } catch {
-        employees = getDefaultEmployees();
+        const response = await fetch(`http://localhost:8000/api/employees/${employeeId}`);
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError('Employee not found');
+          } else {
+            setError('Failed to load employee details');
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        setEmployee(data);
+      } catch (err) {
+        console.error('Error fetching employee:', err);
+        setError('Network error. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      employees = getDefaultEmployees();
-    }
-    
-    const found = employees.find((e: Employee) => e.employeeId === employeeId);
-    if (found) {
-      setEmployee(found);
-      setFormData(found);
-    }
+    };
+
+    fetchEmployee();
   }, [employeeId]);
 
-  const handleInputChange = (field: string, value: any) => {
-    if (formData) {
-      setFormData({ ...formData, [field]: value });
-    }
-  };
-
-  const handleSaveEdit = () => {
-    if (!formData) return;
-    const stored = localStorage.getItem('employees');
-    if (stored) {
-      const employees = JSON.parse(stored);
-      const updated = employees.map((e: Employee) => e.employeeId === employeeId ? formData : e);
-      localStorage.setItem('employees', JSON.stringify(updated));
-      setEmployee(formData);
-      setIsEditing(false);
-      alert('Employee updated successfully!');
-    }
-  };
-
-  if (!employee) {
+  if (isLoading) {
     return (
       <div className="p-4 md:p-6 lg:p-8 min-h-screen" style={{ backgroundColor: THEME.colors.background }}>
-        <div className="text-center">
-          <p>Loading employee details...</p>
+        <div className="text-center py-12">
+          <p className="text-gray-500">Loading employee details...</p>
         </div>
       </div>
     );
   }
 
-  const displayData = isEditing ? formData : employee;
+  if (error || !employee) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 min-h-screen" style={{ backgroundColor: THEME.colors.background }}>
+        <Card className="bg-white rounded-xl shadow">
+          <CardContent className="p-8 text-center">
+            <p className="text-red-600 mb-4">{error || 'Employee not found'}</p>
+            <Button onClick={() => router.back()}>Go Back</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen" style={{ backgroundColor: THEME.colors.background }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <Button variant="outline" type="button" onClick={() => router.back()}>Back</Button>
-          <h2 className="text-2xl font-bold">{employee.fullName}</h2>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {!isEditing ? (
-            <Button type="button" onClick={() => setIsEditing(true)}>Edit</Button>
-          ) : (
-            <>
-              <Button variant="outline" type="button" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button type="button" onClick={handleSaveEdit}>Save Changes</Button>
-            </>
-          )}
+          <Button variant="outline" type="button" onClick={() => router.back()}>
+            ← Back
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">{employee.full_name}</h2>
+            <p className="text-sm text-gray-600">{employee.employee_code}</p>
+          </div>
         </div>
       </div>
 
@@ -153,60 +144,38 @@ const EmployeeDetailPage: React.FC = () => {
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>
         <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div>
+              <label className="text-sm font-medium text-gray-600">Employee ID</label>
+              <p className="mt-1 font-semibold text-blue-600">{employee.employee_id}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600">Employee Code</label>
+              <p className="mt-1 font-semibold">{employee.employee_code}</p>
+            </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Full Name</label>
-              {isEditing ? (
-                <input value={formData?.fullName} onChange={e => handleInputChange('fullName', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.fullName}</p>
-              )}
+              <p className="mt-1">{employee.full_name}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Date of Birth</label>
-              {isEditing ? (
-                <input type="date" value={formData?.dob} onChange={e => handleInputChange('dob', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.dob || '—'}</p>
-              )}
+              <p className="mt-1">{employee.dob || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">CNIC</label>
-              {isEditing ? (
-                <input value={formData?.cnic} onChange={e => handleInputChange('cnic', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.cnic || '—'}</p>
-              )}
+              <p className="mt-1">{employee.cnic || '—'}</p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
             <div>
               <label className="text-sm font-medium text-gray-600">Gender</label>
-              {isEditing ? (
-                <select value={formData?.gender} onChange={e => handleInputChange('gender', e.target.value)} className="w-full px-3 py-2 border rounded mt-1">
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              ) : (
-                <p className="mt-1 capitalize">{displayData?.gender || '—'}</p>
-              )}
+              <p className="mt-1 capitalize">{employee.gender || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Nationality</label>
-              {isEditing ? (
-                <input value={formData?.nationality} onChange={e => handleInputChange('nationality', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.nationality || '—'}</p>
-              )}
+              <p className="mt-1">{employee.nationality || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Religion</label>
-              {isEditing ? (
-                <input value={formData?.religion} onChange={e => handleInputChange('religion', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.religion || '—'}</p>
-              )}
+              <p className="mt-1">{employee.religion || '—'}</p>
             </div>
           </div>
         </CardContent>
@@ -218,66 +187,38 @@ const EmployeeDetailPage: React.FC = () => {
           <CardTitle>Contact Information</CardTitle>
         </CardHeader>
         <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div>
-              <label className="text-sm font-medium text-gray-600">Personal Email</label>
-              {isEditing ? (
-                <input type="email" value={formData?.personalEmail} onChange={e => handleInputChange('personalEmail', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.personalEmail}</p>
-              )}
+              <label className="text-sm font-medium text-gray-600">Email</label>
+              <p className="mt-1">{employee.email}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Mobile Number</label>
-              {isEditing ? (
-                <input value={formData?.mobile} onChange={e => handleInputChange('mobile', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.mobile}</p>
-              )}
+              <p className="mt-1">{employee.phone}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Emergency Phone</label>
-              {isEditing ? (
-                <input value={formData?.emergencyPhone} onChange={e => handleInputChange('emergencyPhone', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.emergencyPhone || '—'}</p>
-              )}
+              <p className="mt-1">{employee.emergency_contact_phone || '—'}</p>
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-6">
             <label className="text-sm font-medium text-gray-600">Residential Address</label>
-            {isEditing ? (
-              <input value={formData?.residentialAddress} onChange={e => handleInputChange('residentialAddress', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-            ) : (
-              <p className="mt-1">{displayData?.residentialAddress}</p>
-            )}
+            <p className="mt-1">{employee.residential_address}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
             <div>
               <label className="text-sm font-medium text-gray-600">Permanent Address</label>
-              {isEditing ? (
-                <input value={formData?.permanentAddress} onChange={e => handleInputChange('permanentAddress', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.permanentAddress || '—'}</p>
-              )}
+              <p className="mt-1">{employee.permanent_address || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">City</label>
-              {isEditing ? (
-                <input value={formData?.city} onChange={e => handleInputChange('city', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.city || '—'}</p>
-              )}
+              <p className="mt-1">{employee.city || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">State</label>
-              {isEditing ? (
-                <input value={formData?.state} onChange={e => handleInputChange('state', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.state || '—'}</p>
-              )}
+              <p className="mt-1">{employee.state || '—'}</p>
             </div>
           </div>
         </CardContent>
@@ -289,54 +230,42 @@ const EmployeeDetailPage: React.FC = () => {
           <CardTitle>Employment Details</CardTitle>
         </CardHeader>
         <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-600">Employee ID</label>
-              <p className="mt-1 font-medium">{displayData?.employeeId}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Employee Code</label>
-              <p className="mt-1">{displayData?.employeeCode}</p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div>
               <label className="text-sm font-medium text-gray-600">Department</label>
-              {isEditing ? (
-                <input value={formData?.department} onChange={e => handleInputChange('department', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
+              {employee.department ? (
+                <p className="mt-1">
+                  <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                    {employee.department.dept_code} - {employee.department.dept_name}
+                  </span>
+                </p>
               ) : (
-                <p className="mt-1">{displayData?.department || '—'}</p>
+                <p className="mt-1">—</p>
               )}
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div>
               <label className="text-sm font-medium text-gray-600">Designation</label>
-              {isEditing ? (
-                <input value={formData?.designation} onChange={e => handleInputChange('designation', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
+              {employee.designation ? (
+                <p className="mt-1">
+                  <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                    {employee.designation.position_code} - {employee.designation.position_name}
+                  </span>
+                </p>
               ) : (
-                <p className="mt-1">{displayData?.designation || '—'}</p>
+                <p className="mt-1">—</p>
               )}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Date of Joining</label>
-              {isEditing ? (
-                <input type="date" value={formData?.dateOfJoining} onChange={e => handleInputChange('dateOfJoining', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.dateOfJoining}</p>
-              )}
+              <p className="mt-1">{employee.joining_date || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Employment Type</label>
-              {isEditing ? (
-                <select value={formData?.employmentType} onChange={e => handleInputChange('employmentType', e.target.value)} className="w-full px-3 py-2 border rounded mt-1">
-                  <option>Full-time</option>
-                  <option>Part-time</option>
-                  <option>Contract</option>
-                  <option>Intern</option>
-                </select>
-              ) : (
-                <p className="mt-1">{displayData?.employmentType || '—'}</p>
-              )}
+              <p className="mt-1">
+                <span className="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                  {employee.employment_type}
+                </span>
+              </p>
             </div>
           </div>
         </CardContent>
@@ -348,64 +277,50 @@ const EmployeeDetailPage: React.FC = () => {
           <CardTitle>Bank Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-medium text-gray-600">Bank Name</label>
-              {isEditing ? (
-                <input value={formData?.bankName} onChange={e => handleInputChange('bankName', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.bankName}</p>
-              )}
+              <p className="mt-1">{employee.bank_name}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Account Number</label>
-              {isEditing ? (
-                <input value={formData?.accountNumber} onChange={e => handleInputChange('accountNumber', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.accountNumber}</p>
-              )}
+              <p className="mt-1">{employee.account_number}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Organization Provided */}
-      <Card className="bg-white rounded-xl shadow mb-6">
-        <CardHeader>
-          <CardTitle>Provided By Organization</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-600">Organization Email</label>
-              {isEditing ? (
-                <input type="email" value={formData?.orgEmail} onChange={e => handleInputChange('orgEmail', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.orgEmail || '—'}</p>
-              )}
+      {(employee.email || employee.organization_phone) && (
+        <Card className="bg-white rounded-xl shadow mb-6">
+          <CardHeader>
+            <CardTitle>Provided By Organization</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Organization Email</label>
+                <p className="mt-1">{employee.email || '—'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Organization Phone</label>
+                <p className="mt-1">{employee.organization_phone || '—'}</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Organization Phone</label>
-              {isEditing ? (
-                <input value={formData?.orgPhone} onChange={e => handleInputChange('orgPhone', e.target.value)} className="w-full px-3 py-2 border rounded mt-1" />
-              ) : (
-                <p className="mt-1">{displayData?.orgPhone || '—'}</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Education */}
-      {displayData?.education && displayData.education.length > 0 && (
+      {employee.education_history && employee.education_history.length > 0 && (
         <Card className="bg-white rounded-xl shadow mb-6">
           <CardHeader>
             <CardTitle>Educational History</CardTitle>
           </CardHeader>
           <CardContent>
-            {displayData.education.map((edu, idx) => (
-              <div key={edu.id} className="border p-4 rounded mb-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {employee.education_history.map((edu, idx) => (
+              <div key={idx} className="border p-4 rounded-lg mb-3 last:mb-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-600">Degree/Certificate</label>
                     <p className="mt-1">{edu.degree || '—'}</p>
@@ -426,40 +341,55 @@ const EmployeeDetailPage: React.FC = () => {
       )}
 
       {/* Experience */}
-      {displayData?.experience && displayData.experience.length > 0 && (
+      {employee.work_experience && employee.work_experience.length > 0 && (
         <Card className="bg-white rounded-xl shadow mb-6">
           <CardHeader>
             <CardTitle>Work Experience</CardTitle>
           </CardHeader>
           <CardContent>
-            {displayData.experience.map((exp, idx) => (
-              <div key={exp.id} className="border p-4 rounded mb-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {employee.work_experience.map((exp, idx) => (
+              <div key={idx} className="border p-4 rounded-lg mb-3 last:mb-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-600">Employer</label>
-                    <p className="mt-1">{exp.employer || '—'}</p>
+                    <p className="mt-1 font-semibold">{exp.employer || '—'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Job Title</label>
                     <p className="mt-1">{exp.jobTitle || '—'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Start Date</label>
-                    <p className="mt-1">{exp.startDate || '—'}</p>
+                    <label className="text-sm font-medium text-gray-600">Duration</label>
+                    <p className="mt-1">{exp.startDate} to {exp.endDate || 'Present'}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">End Date</label>
-                    <p className="mt-1">{exp.endDate || '—'}</p>
-                  </div>
-                  <div className="md:col-span-2">
+                {exp.responsibilities && (
+                  <div className="mt-4">
                     <label className="text-sm font-medium text-gray-600">Key Responsibilities</label>
-                    <p className="mt-1">{exp.responsibilities || '—'}</p>
+                    <p className="mt-1 text-gray-700">{exp.responsibilities}</p>
                   </div>
-                </div>
+                )}
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Resume */}
+      {employee.resume && (
+        <Card className="bg-white rounded-xl shadow mb-6">
+          <CardHeader>
+            <CardTitle>Resume</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <a
+              href={employee.resume}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              📄 View Resume
+            </a>
           </CardContent>
         </Card>
       )}
