@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Home, 
-  FileText, 
+import {
+  Home,
+  FileText,
   UserPlus,
   Users,
   Settings,
@@ -13,7 +13,8 @@ import {
   Inbox,
   ChevronRight,
   X,
-  LogOut // Add LogOut icon
+  LogOut, // Add LogOut icon
+  Building
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth'; // Import useAuth hook
 import { Logo } from '../ui/logo';
@@ -29,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
   const { logout } = useAuth(); // Get logout function
   const [isOpen, setIsOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  
+
   const getSidebarItems = (role: string) => {
     switch (role) {
       case 'requester':
@@ -62,6 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           { name: 'Dashboard', url: `/${role}/dashboard`, icon: Home },
           { name: 'Users', url: `/${role}/users`, icon: Users },
           { name: 'Employees', url: `/${role}/employees`, icon: UserPlus },
+          { name: 'Departments', url: `/${role}/departments`, icon: Building },
           { name: 'Analytics', url: `/${role}/analytics`, icon: TrendingUp },
           { name: 'Reports', url: `/${role}/reports`, icon: FileText },
           { name: 'Settings', url: `/${role}/settings`, icon: Settings },
@@ -84,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside 
+      <aside
         className={`hidden md:block fixed left-0 top-0 bottom-0 z-[60] h-screen transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isOpen ? 'w-72 md:w-64 lg:w-72' : 'w-18'}
           ${isOpen ? 'bg-[#e7ecef]' : 'bg-[#a3cef1]'}
@@ -101,16 +103,16 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
         {/* Logo Section - Clickable */}
         <div className={`px-4 py-8 ${isOpen ? '' : 'flex justify-center'}`}>
           {isOpen ? (
-            <Logo 
-              size="full" 
-              showText={true} 
-              showSubtitle={true} 
+            <Logo
+              size="full"
+              showText={true}
+              showSubtitle={true}
               onClick={() => setIsOpen(!isOpen)}
             />
           ) : (
-            <Logo 
-              size="md" 
-              showText={false} 
+            <Logo
+              size="md"
+              showText={false}
               onClick={() => setIsOpen(!isOpen)}
             />
           )}
@@ -121,9 +123,9 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           {sidebarItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = pathname === item.url || pathname?.startsWith(item.url + '/');
-            
+
             return (
-              <Link 
+              <Link
                 key={item.name}
                 href={item.url}
                 className={`
@@ -131,8 +133,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
                   rounded-xl
                   font-semibold
                   transition-all duration-500
-                  ${isActive 
-                    ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl border-2 border-[#6096ba]' 
+                  ${isActive
+                    ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl border-2 border-[#6096ba]'
                     : 'bg-transparent text-[#274c77] border-[1.5px] border-[#8b8c89] shadow-lg hover:bg-[#a3cef1]'
                   }
                   group
@@ -141,12 +143,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
                   animationDelay: `${index * 50}ms`,
                 }}
               >
-                <Icon 
+                <Icon
                   className={`transition-all duration-200 ${isActive ? 'text-[#e7ecef]' : 'text-[#274c77] group-hover:text-[#274c77]'}`}
                   size={isOpen ? 20 : 24}
                 />
                 {isOpen && (
-                  <span 
+                  <span
                     className="ml-3 transition-all duration-500"
                     style={{
                       opacity: isOpen ? 1 : 0,
@@ -177,12 +179,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
               active:scale-95
             `}
           >
-            <LogOut 
+            <LogOut
               className={`transition-all duration-200 text-[#ef4444] ${isOpen ? '' : 'group-hover:text-white'}`}
               size={isOpen ? 20 : 24}
             />
             {isOpen && (
-              <span 
+              <span
                 className="ml-3 transition-all duration-500"
                 style={{
                   opacity: isOpen ? 1 : 0,
@@ -209,14 +211,14 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
 
       {/* Mobile Overlay */}
       {mobileSidebarOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 z-50 bg-black/30 backdrop-blur-sm transition-opacity duration-700"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
       {/* Mobile Sidebar */}
-      <div 
+      <div
         id="mobile-sidebar"
         className={`md:hidden fixed inset-y-0 left-0 z-50 w-80 
           bg-[#e7ecef] rounded-r-3xl border-r-[3px] border-[#1c3f67]
@@ -242,17 +244,17 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           {sidebarItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.url || pathname?.startsWith(item.url + '/');
-            
+
             return (
-              <Link 
+              <Link
                 key={item.name}
                 href={item.url}
                 className={`
                   flex items-center justify-start px-4 py-3
                   rounded-xl font-semibold
                   transition-all duration-500
-                  ${isActive 
-                    ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl border-2 border-[#6096ba]' 
+                  ${isActive
+                    ? 'bg-[#6096ba] text-[#e7ecef] shadow-xl border-2 border-[#6096ba]'
                     : 'bg-transparent text-[#274c77] border-[1.5px] border-[#8b8c89] shadow-lg hover:bg-[#a3cef1]'
                   }
                 `}

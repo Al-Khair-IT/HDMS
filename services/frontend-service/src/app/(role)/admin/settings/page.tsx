@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../components
 import { Button } from '../../../../components/ui/Button';
 import ConfirmModal from '../../../../components/modals/ConfirmModal';
 import { THEME } from '../../../../lib/theme';
-import { 
-  Settings, 
-  Building2, 
-  Tag, 
-  Clock, 
-  Link2, 
+import {
+  Settings,
+  Building2,
+  Tag,
+  Clock,
+  Link2,
   Bell,
   Plus,
   Edit,
@@ -31,10 +31,8 @@ import {
 interface Department {
   id: string;
   name: string;
-  headId?: string;
-  headName?: string;
-  categories: string[];
 }
+                     
 
 interface Category {
   id: string;
@@ -70,24 +68,25 @@ interface NotificationSettings {
 
 const AdminSettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'departments' | 'categories' | 'sla' | 'integrations' | 'notifications'>('departments');
+  const [activeTab, setActiveTab] = useState<'categories' | 'sla' | 'integrations' | 'notifications'>('categories');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
 
-  // Departments
-  const [departments, setDepartments] = useState<Department[]>([
-    { id: '1', name: 'Development', categories: ['Feature Request', 'Bug Fix', 'Enhancement', 'Code Review', 'Deployment', 'Other'] },
-    { id: '2', name: 'Finance & Accounts', categories: ['Payment Issue', 'Invoice', 'Expense', 'Budget', 'Financial Reports', 'Other'] },
-    { id: '3', name: 'Procurement', categories: ['Purchase Request', 'Approval', 'Vendor Management', 'Contract', 'Other'] },
-    { id: '4', name: 'Basic Maintenance', categories: ['Repair', 'Installation', 'General Maintenance', 'Urgent Repair', 'Inspection', 'Other'] },
-    { id: '5', name: 'IT', categories: ['Hardware Issue', 'Software Issue', 'Network Issue', 'Email Issue', 'Access Request', 'Security', 'Other'] },
-    { id: '6', name: 'Architecture', categories: ['Design Request', 'Design Review', 'Planning', 'Consultation', 'Other'] },
-    { id: '7', name: 'Administration', categories: ['Documentation', 'Policy Query', 'Compliance', 'General Inquiry', 'Other'] },
-  ]);
-  const [showDeptModal, setShowDeptModal] = useState(false);
-  const [editingDept, setEditingDept] = useState<Department | null>(null);
-  const [deptForm, setDeptForm] = useState({ name: '', headId: '', headName: '' });
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('departments');
+    if (stored) {
+      try {
+        setDepartments(JSON.parse(stored));
+      } catch {
+        setDepartments([]);
+      }
+    }
+  }, []);
+
+
 
   // Categories
   const [categories, setCategories] = useState<Category[]>([
@@ -140,62 +139,16 @@ const AdminSettingsPage: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     setSaveMessage('');
-    
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     setSaving(false);
     setSaveMessage('Settings saved successfully!');
     setTimeout(() => setSaveMessage(''), 3000);
   };
 
-  // Department handlers
-  const handleAddDepartment = () => {
-    setEditingDept(null);
-    setDeptForm({ name: '', headId: '', headName: '' });
-    setShowDeptModal(true);
-  };
 
-  const handleEditDepartment = (dept: Department) => {
-    setEditingDept(dept);
-    setDeptForm({ name: dept.name, headId: dept.headId || '', headName: dept.headName || '' });
-    setShowDeptModal(true);
-  };
-
-  const handleSaveDepartment = () => {
-    if (!deptForm.name.trim()) return;
-
-    if (editingDept) {
-      setDepartments(prev => prev.map(d => 
-        d.id === editingDept.id 
-          ? { ...d, name: deptForm.name, headId: deptForm.headId, headName: deptForm.headName }
-          : d
-      ));
-    } else {
-      setDepartments(prev => [...prev, {
-        id: Date.now().toString(),
-        name: deptForm.name,
-        headId: deptForm.headId,
-        headName: deptForm.headName,
-        categories: [],
-      }]);
-    }
-    setShowDeptModal(false);
-    setEditingDept(null);
-    setDeptForm({ name: '', headId: '', headName: '' });
-  };
-
-  const handleDeleteDepartment = (id: string) => {
-    setConfirm({
-      open: true,
-      type: 'department',
-      id,
-      onConfirm: () => {
-        setDepartments(prev => prev.filter(d => d.id !== id));
-        setConfirm({ open: false });
-      },
-    });
-  };
 
   // Category handlers
   const handleAddCategory = () => {
@@ -206,10 +159,10 @@ const AdminSettingsPage: React.FC = () => {
 
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
-    setCategoryForm({ 
-      name: category.name, 
-      department: category.department, 
-      defaultPriority: category.defaultPriority 
+    setCategoryForm({
+      name: category.name,
+      department: category.department,
+      defaultPriority: category.defaultPriority
     });
     setShowCategoryModal(true);
   };
@@ -218,8 +171,8 @@ const AdminSettingsPage: React.FC = () => {
     if (!categoryForm.name.trim() || !categoryForm.department) return;
 
     if (editingCategory) {
-      setCategories(prev => prev.map(c => 
-        c.id === editingCategory.id 
+      setCategories(prev => prev.map(c =>
+        c.id === editingCategory.id
           ? { ...c, ...categoryForm }
           : c
       ));
@@ -255,9 +208,9 @@ const AdminSettingsPage: React.FC = () => {
 
   const handleEditSLA = (sla: SLATemplate) => {
     setEditingSLA(sla);
-    setSlaForm({ 
-      name: sla.name, 
-      priority: sla.priority, 
+    setSlaForm({
+      name: sla.name,
+      priority: sla.priority,
       dueDelta: sla.dueDelta,
       categoryId: sla.categoryId || '',
     });
@@ -267,13 +220,13 @@ const AdminSettingsPage: React.FC = () => {
   const handleSaveSLA = () => {
     if (!slaForm.name.trim()) return;
 
-    const categoryName = slaForm.categoryId 
-      ? categories.find(c => c.id === slaForm.categoryId)?.name 
+    const categoryName = slaForm.categoryId
+      ? categories.find(c => c.id === slaForm.categoryId)?.name
       : undefined;
 
     if (editingSLA) {
-      setSlaTemplates(prev => prev.map(s => 
-        s.id === editingSLA.id 
+      setSlaTemplates(prev => prev.map(s =>
+        s.id === editingSLA.id
           ? { ...s, ...slaForm, categoryName }
           : s
       ));
@@ -302,7 +255,7 @@ const AdminSettingsPage: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'departments' as const, name: 'Departments', icon: Building2 },
+
     { id: 'categories' as const, name: 'Categories', icon: Tag },
     { id: 'sla' as const, name: 'SLA Templates', icon: Clock },
     { id: 'integrations' as const, name: 'Integrations', icon: Link2 },
@@ -344,11 +297,10 @@ const AdminSettingsPage: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`py-3 px-4 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
-                      activeTab === tab.id
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
+                    className={`py-3 px-4 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === tab.id
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
                     style={activeTab === tab.id ? { borderColor: THEME.colors.primary, color: THEME.colors.primary } : {}}
                   >
                     <IconComponent className="w-4 h-4" />
@@ -358,77 +310,10 @@ const AdminSettingsPage: React.FC = () => {
               })}
             </nav>
           </div>
-          
+
           <div className="p-4 md:p-6 lg:p-8">
             {/* Departments Tab */}
-            {activeTab === 'departments' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold" style={{ color: THEME.colors.primary }}>Departments</h2>
-                  <Button
-                    variant="primary"
-                    leftIcon={<Plus className="w-4 h-4" />}
-                    onClick={handleAddDepartment}
-                  >
-                    Add Department
-                  </Button>
-                </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b-2" style={{ borderColor: THEME.colors.background }}>
-                        <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: THEME.colors.primary }}>Name</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: THEME.colors.primary }}>Department Head</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: THEME.colors.primary }}>Categories</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: THEME.colors.primary }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {departments.map((dept) => (
-                        <tr key={dept.id} className="border-b hover:bg-gray-50" style={{ borderColor: THEME.colors.background }}>
-                          <td className="py-4 px-4 font-medium" style={{ color: THEME.colors.primary }}>{dept.name}</td>
-                          <td className="py-4 px-4" style={{ color: THEME.colors.gray }}>{dept.headName || 'Not assigned'}</td>
-                          <td className="py-4 px-4">
-                            <div className="flex flex-wrap gap-1">
-                              {dept.categories.length > 0 ? (
-                                dept.categories.map((cat, idx) => (
-                                  <span key={idx} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: THEME.colors.background, color: THEME.colors.primary }}>
-                                    {cat}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-xs" style={{ color: THEME.colors.gray }}>No categories</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                leftIcon={<Edit className="w-3 h-3" />}
-                                onClick={() => handleEditDepartment(dept)}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                leftIcon={<Trash2 className="w-3 h-3" />}
-                                onClick={() => handleDeleteDepartment(dept.id)}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
 
             {/* Categories Tab */}
             {activeTab === 'categories' && (
@@ -460,7 +345,7 @@ const AdminSettingsPage: React.FC = () => {
                           <td className="py-4 px-4 font-medium" style={{ color: THEME.colors.primary }}>{cat.name}</td>
                           <td className="py-4 px-4" style={{ color: THEME.colors.gray }}>{cat.department}</td>
                           <td className="py-4 px-4">
-                            <span className="px-2 py-1 rounded text-xs font-medium capitalize" style={{ 
+                            <span className="px-2 py-1 rounded text-xs font-medium capitalize" style={{
                               backgroundColor: cat.defaultPriority === 'urgent' ? '#FEE2E2' : cat.defaultPriority === 'high' ? '#FEF3C7' : cat.defaultPriority === 'medium' ? '#DBEAFE' : '#D1FAE5',
                               color: cat.defaultPriority === 'urgent' ? '#991B1B' : cat.defaultPriority === 'high' ? '#92400E' : cat.defaultPriority === 'medium' ? '#1E40AF' : '#065F46',
                             }}>
@@ -525,7 +410,7 @@ const AdminSettingsPage: React.FC = () => {
                         <tr key={sla.id} className="border-b hover:bg-gray-50" style={{ borderColor: THEME.colors.background }}>
                           <td className="py-4 px-4 font-medium" style={{ color: THEME.colors.primary }}>{sla.name}</td>
                           <td className="py-4 px-4">
-                            <span className="px-2 py-1 rounded text-xs font-medium capitalize" style={{ 
+                            <span className="px-2 py-1 rounded text-xs font-medium capitalize" style={{
                               backgroundColor: sla.priority === 'urgent' ? '#FEE2E2' : sla.priority === 'high' ? '#FEF3C7' : sla.priority === 'medium' ? '#DBEAFE' : '#D1FAE5',
                               color: sla.priority === 'urgent' ? '#991B1B' : sla.priority === 'high' ? '#92400E' : sla.priority === 'medium' ? '#1E40AF' : '#065F46',
                             }}>
@@ -750,9 +635,8 @@ const AdminSettingsPage: React.FC = () => {
         <CardContent className="p-4 md:p-6 lg:p-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {saveMessage && (
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                saveMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-              }`}>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${saveMessage.includes('success') ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                }`}>
                 <CheckCircle className="w-5 h-5" />
                 <span className="font-medium">{saveMessage}</span>
               </div>
@@ -771,53 +655,7 @@ const AdminSettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Department Modal */}
-      {showDeptModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold" style={{ color: THEME.colors.primary }}>
-                {editingDept ? 'Edit Department' : 'Add Department'}
-              </h2>
-              <button onClick={() => setShowDeptModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5" style={{ color: THEME.colors.gray }} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: THEME.colors.primary }}>
-                  Department Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={deptForm.name}
-                  onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
-                  placeholder="Enter department name"
-                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2"
-                  style={{ borderColor: THEME.colors.background }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: THEME.colors.primary }}>
-                  Department Head Name
-                </label>
-                <input
-                  type="text"
-                  value={deptForm.headName}
-                  onChange={(e) => setDeptForm({ ...deptForm, headName: e.target.value })}
-                  placeholder="Enter department head name"
-                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2"
-                  style={{ borderColor: THEME.colors.background }}
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-xl">
-              <Button variant="outline" onClick={() => setShowDeptModal(false)}>Cancel</Button>
-              <Button variant="primary" onClick={handleSaveDepartment}>Save</Button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Category Modal */}
       {showCategoryModal && (
