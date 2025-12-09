@@ -64,8 +64,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           { name: 'Users', url: `/${role}/users`, icon: Users },
           { name: 'Employees', url: `/${role}/employees`, icon: UserPlus },
           { name: 'Departments', url: `/${role}/departments`, icon: Building },
-          { name: 'Analytics', url: `/${role}/analytics`, icon: TrendingUp },
-          { name: 'Reports', url: `/${role}/reports`, icon: FileText },
           { name: 'Settings', url: `/${role}/settings`, icon: Settings },
           { name: 'Notifications', url: `/${role}/notifications`, icon: Inbox },
           { name: 'Profile', url: `/${role}/profile`, icon: Users }

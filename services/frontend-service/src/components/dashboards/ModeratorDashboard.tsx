@@ -90,7 +90,9 @@ const ModeratorDashboard: React.FC = () => {
           const activity = generateRecentActivity(mockTickets);
           setRecentActivity(activity);
         } else {
-          console.error('Error fetching tickets:', error?.message || error);
+          const errorMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
+          console.error('Error fetching tickets:', errorMessage);
+
           const mockTickets = generateMockTickets();
           setTickets(mockTickets);
           setUseMockData(true);

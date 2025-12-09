@@ -94,7 +94,8 @@ const AdminDashboardPage: React.FC = () => {
             console.warn('API not available, using demo tickets');
             ticketsList = generateDemoTickets();
           } else {
-            throw error;
+            console.warn('API returned error, using demo tickets:', error);
+            ticketsList = generateDemoTickets();
           }
         }
 
@@ -114,7 +115,8 @@ const AdminDashboardPage: React.FC = () => {
             console.warn('API not available, using demo users');
             usersList = generateDemoUsers();
           } else {
-            throw error;
+            console.warn('API returned error, using demo users:', error);
+            usersList = generateDemoUsers();
           }
         }
 
@@ -417,8 +419,8 @@ const AdminDashboardPage: React.FC = () => {
               <button
                 onClick={() => setTimeRange('30')}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${timeRange === '30'
-                    ? 'text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 style={timeRange === '30' ? { backgroundColor: THEME.colors.primary } : {}}
               >
@@ -427,8 +429,8 @@ const AdminDashboardPage: React.FC = () => {
               <button
                 onClick={() => setTimeRange('180')}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${timeRange === '180'
-                    ? 'text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 style={timeRange === '180' ? { backgroundColor: THEME.colors.primary } : {}}
               >
@@ -437,8 +439,8 @@ const AdminDashboardPage: React.FC = () => {
               <button
                 onClick={() => setTimeRange('365')}
                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${timeRange === '365'
-                    ? 'text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 style={timeRange === '365' ? { backgroundColor: THEME.colors.primary } : {}}
               >

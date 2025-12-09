@@ -68,6 +68,8 @@ const LoginPage: React.FC = () => {
       });
 
       if (result.success && result.user && result.accessToken) {
+        const lowerRole = result.user.role.toLowerCase();
+
         // Store in localStorage and auth store
         localStorage.setItem('token', result.accessToken);
         localStorage.setItem('refreshToken', result.refreshToken || '');
@@ -78,13 +80,17 @@ const LoginPage: React.FC = () => {
           id: result.user.id,
           name: result.user.name,
           email: result.user.email,
-          role: result.user.role,
+          role: lowerRole,
           department: result.user.department,
           employeeCode: result.user.employeeCode,
         } as any, result.accessToken);
 
-        // Navigate to role-specific dashboard
-        router.push(`/${result.user.role}/dashboard`);
+        // Set cookies for Middleware (Auth Guard)
+        document.cookie = `auth_token=${result.accessToken}; path=/; max-age=3600; SameSite=Strict`;
+        document.cookie = `user_role=${lowerRole}; path=/; max-age=3600; SameSite=Strict`;
+
+        // Navigate to role-specific dashboard - Use window.location to ensure fresh state for Middleware
+        window.location.href = `/${lowerRole}/dashboard`;
       } else {
         // Handle specific error types
         const errorData = result.error;

@@ -28,9 +28,12 @@ export default function RoleLayout({
     }
 
     // Check if user has access to this role section
-    if (roleFromPath && allowedRoles.includes(roleFromPath)) {
-      if (user.role !== roleFromPath && user.role !== 'admin') {
-        router.push(`/${user.role}/dashboard`);
+    if (roleFromPath && allowedRoles.includes(roleFromPath.toLowerCase())) {
+      const userRoleLower = user.role.toLowerCase();
+      const pathRoleLower = roleFromPath.toLowerCase();
+
+      if (userRoleLower !== pathRoleLower && userRoleLower !== 'admin') {
+        router.push(`/${userRoleLower}/dashboard`);
         return;
       }
     }
@@ -52,8 +55,11 @@ export default function RoleLayout({
   }
 
   // Check if user has access to this role section
-  if (roleFromPath && allowedRoles.includes(roleFromPath)) {
-    if (user.role !== roleFromPath && user.role !== 'admin') {
+  if (roleFromPath && allowedRoles.includes(roleFromPath.toLowerCase())) {
+    const userRoleLower = user.role.toLowerCase();
+    const pathRoleLower = roleFromPath.toLowerCase();
+
+    if (userRoleLower !== pathRoleLower && userRoleLower !== 'admin') {
       return null;
     }
   }

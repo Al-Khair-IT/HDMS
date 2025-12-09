@@ -3,6 +3,7 @@ import "../styles/globals.css";
 import { AuthProvider } from "../lib/auth";
 import { Layout } from "../components/layout/layout";
 import { Toast } from "../components/ui/Toast";
+import { SessionTimeout } from "../components/auth/SessionTimeout";
 
 export const metadata: Metadata = {
   title: "HDMS - Help Desk Management System",
@@ -34,6 +35,7 @@ export default function RootLayout({
         style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
       >
         <AuthProvider>
+          <SessionTimeout />
           <Layout>
             {children}
           </Layout>
