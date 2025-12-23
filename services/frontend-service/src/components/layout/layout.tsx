@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
 import { Navbar } from './Navbar';
@@ -14,17 +14,18 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = React.memo(({ children }) => {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Don't show layout on auth pages - Early return to prevent any rendering
-  const isAuthPage = pathname?.startsWith('/login') || 
-                     pathname?.startsWith('/register') || 
-                     pathname?.startsWith('/forgot-password');
+  // Don't show layout on auth pages
+  const isAuthPage = pathname?.startsWith('/login') ||
+    pathname?.startsWith('/register') ||
+    pathname?.startsWith('/forgot-password');
 
   if (isAuthPage) {
     return (
-      <div 
-        style={{ 
-          minHeight: '100vh', 
+      <div
+        style={{
+          minHeight: '100vh',
           backgroundColor: THEME.colors.background,
           position: 'relative',
           zIndex: 1
@@ -54,23 +55,30 @@ export const Layout: React.FC<LayoutProps> = React.memo(({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: THEME.colors.background }}>
-      {/* Top Navbar - Fixed - Render Only Once */}
+      {/* Top Navbar */}
       <Navbar key="navbar" role={role} />
 
-      {/* Main Content Area - Below Navbar */}
+      {/* Main Content Area */}
       <div className="flex flex-1 pt-16 md:pt-20">
         {/* Left Sidebar - Fixed - Desktop Only */}
         <div key="desktop-sidebar-wrapper" className="hidden md:block fixed left-0 top-0 bottom-0 z-[60]">
-          <Sidebar key="desktop-sidebar" role={role} currentPage={pathname || ''} />
+          <Sidebar
+            key="desktop-sidebar"
+            role={role}
+            currentPage={pathname || ''}
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen(prev => !prev)}
+          />
         </div>
 
-        {/* Content Area - Right side of sidebar */}
-        <main 
-          className="flex-1 w-full md:ml-64 transition-all duration-300 ease-in-out overflow-y-auto"
-          style={{ 
+        {/* Content Area */}
+        <main
+          className={`flex-1 w-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-y-auto ${isSidebarOpen ? 'md:ml-72 lg:ml-72' : 'md:ml-20'
+            }`}
+          style={{
             minHeight: 'calc(100vh - 64px)',
             backgroundColor: THEME.colors.background,
-            paddingTop: '1rem', // Extra padding to ensure content doesn't stick to navbar
+            paddingTop: '1rem',
           }}
         >
           <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -83,4 +91,3 @@ export const Layout: React.FC<LayoutProps> = React.memo(({ children }) => {
 });
 
 Layout.displayName = 'Layout';
-

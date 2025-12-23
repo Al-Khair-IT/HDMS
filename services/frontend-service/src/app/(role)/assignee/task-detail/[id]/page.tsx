@@ -5,24 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../../../../lib/auth';
 import {
   ArrowLeft,
-  CheckCircle,
   X,
-  Upload,
-  Save,
-  FileText
 } from 'lucide-react';
-import { THEME } from '../../../../../lib/theme';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
 import { Button } from '../../../../../components/ui/Button';
 import ticketService from '../../../../../services/api/ticketService';
 import { Ticket } from '../../../../../types';
 import TicketHistory from '../../../../../components/tickets/TicketHistory';
 import AssigneeActionsPanel from '../../../../../components/tickets/AssigneeActionsPanel';
 import TicketDetailsPanel from '../../../../../components/review/TicketDetailsPanel';
-import TicketChatPanel from '../../../../../components/review/TicketChatPanel';
 import ConfirmModal from '../../../../../components/modals/ConfirmModal';
-import TicketChat from '../../../../../components/common/TicketChat';
-import { getMockTicketById } from '../../../../../lib/mockData';
+// New unified chat panel
+import { UnifiedChatPanel } from '../../../../../components/chat/UnifiedChatPanel';
 
 const AssigneeTaskDetailPage: React.FC = () => {
   const params = useParams();
@@ -215,14 +208,8 @@ const AssigneeTaskDetailPage: React.FC = () => {
             loading={processing}
           />
 
-          <Card className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <CardHeader className="pb-2 border-b border-gray-100 bg-gray-50">
-              <CardTitle className="text-sm font-bold text-gray-700">Communication</CardTitle>
-            </CardHeader>
-            <div className="h-[500px]">
-              <TicketChat ticketId={ticket.id} />
-            </div>
-          </Card>
+          {/* Unified Web Socket Chat */}
+          <UnifiedChatPanel ticketId={ticket.id} />
         </div>
       </div>
 
@@ -303,17 +290,19 @@ const AssigneeTaskDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* Subticket Chat Modal Overlay (Or just rely on main chat with a flag?) */}
+      {/* Subticket Chat Modal Overlay */}
       {showSubTicketChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 h-[500px] flex flex-col">
-            <div className="flex justify-between items-center mb-2">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Request Sub-Ticket</h3>
               <button onClick={() => setShowSubTicketChat(false)}><X className="w-5 h-5" /></button>
             </div>
-            <p className="text-sm text-gray-500 mb-2">Discuss with Moderator to request a sub-ticket.</p>
-            <div className="flex-1 overflow-hidden border rounded-lg">
-              <TicketChat ticketId={ticket.id} />
+            <p className="text-gray-600 mb-4">
+              To request a sub-ticket, please use the chat panel to discuss the requirements with the Moderator.
+            </p>
+            <div className="flex justify-end">
+              <Button variant="primary" onClick={() => setShowSubTicketChat(false)}>Got it</Button>
             </div>
           </div>
         </div>

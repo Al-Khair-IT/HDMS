@@ -20,7 +20,7 @@ export type Permission =
   | 'settings:manage';
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-  [ROLES.requestor]: [
+  [ROLES.REQUESTOR]: [
     'ticket:create',
     'ticket:view',
     'ticket:edit',

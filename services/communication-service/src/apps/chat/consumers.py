@@ -4,10 +4,6 @@ WebSocket consumer for chat.
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from rest_framework_simplejwt.tokens import UntypedToken
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from django.contrib.auth import get_user_model
-# Note: settings import removed - not used in this file
 from apps.chat.models import ChatMessage, TicketParticipant
 
 
@@ -15,39 +11,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for ticket chat."""
     
     async def connect(self):
-        """Handle WebSocket connection."""
+        """
+        Handle WebSocket connection.
+        Authentication is handled by JWTAuthMiddleware.
+        """
         self.ticket_id = self.scope['url_route']['kwargs']['ticket_id']
         self.room_group_name = f'chat_{self.ticket_id}'
         
-        # Authenticate user from token
-        token = self.scope.get('subprotocols', [None])[0] if self.scope.get('subprotocols') else None
-        if not token:
+        # Check if middleware validated token
+        if not self.scope.get('token_validated'):
+            print(f"❌ WebSocket rejected: Token not validated by middleware")
             await self.close()
             return
         
-        try:
-            # Validate JWT token
-            UntypedToken(token)
-            # Get user from token (simplified - in production, decode and get user)
-            self.user_id = await self.get_user_from_token(token)
-            
-            if not self.user_id:
-                await self.close()
-                return
-            
-            # Join room group
-            await self.channel_layer.group_add(
-                self.room_group_name,
-                self.channel_name
-            )
-            
-            await self.accept()
-            
-            # Add participant
-            await self.add_participant()
-            
-        except (InvalidToken, TokenError):
+        self.user = self.scope.get('user')
+        
+        if not self.user:
+            print(f"❌ WebSocket rejected: No user object in scope")
             await self.close()
+            return
+        
+        self.user_id = str(self.user.id)
+        
+        # Join room group
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        
+        await self.accept()
+        print(f"✅ WebSocket accepted for ticket {self.ticket_id}, user {self.user_id}")
+        
+        # Add participant
+        await self.add_participant()
+
     
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection."""
@@ -58,10 +55,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def receive(self, text_data):
         """Receive message from WebSocket."""
-        data = json.loads(text_data)
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            print(f"⚠️ Invalid JSON received: {text_data}")
+            return
+
         message = data.get('message')
         mentions = data.get('mentions', [])
         
+        # Validate message content (Ignore null or empty messages)
+        if not message or not str(message).strip():
+            print(f"⚠️ Ignoring empty/null message from user {self.user_id}")
+            return
+            
         # Save message to database
         chat_message = await self.save_message(message, mentions)
         
@@ -91,15 +98,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'data': message
         }))
     
-    @database_sync_to_async
-    def get_user_from_token(self, token):
-        """Get user ID from JWT token."""
-        try:
-            from rest_framework_simplejwt.tokens import AccessToken
-            access_token = AccessToken(token)
-            return str(access_token['user_id'])
-        except:
-            return None
     
     @database_sync_to_async
     def save_message(self, message, mentions):

@@ -2,49 +2,48 @@
 
 ## **PROJECT DELIVERABLES — *Help Desk Management System (MVP)***
 
-The deliverables represent the tangible system components to be developed, tested, and deployed during the 1-month MVP phase.
+**Last Updated:** December 17, 2025
+
+The deliverables represent the tangible system components to be developed, tested, and deployed during the MVP phase.
 
 ---
 
 ### **System Deliverables**
 
-| Category | Deliverable | Description |
-| ----- | ----- | ----- |
-| **1. Authentication Module** | Centralized Employee Login | Integration with the existing SMS system for shared employee credentials. |
-|  | Role & Access Control | HDMS Admin can authorize SMS employees for access to the help desk. |
-| **2. Ticketing System** | Ticket Creation & Tracking | Department-wise request creation with status updates. |
-|  | Linked/Sub-Tickets | Support multi-department workflows under a single parent ticket. (Moderator-controlled creation) |
-|  | Commenting System | Discussion area for all users involved in a ticket. |
-|  | File Attachments | Upload supporting documents or proofs with tickets. |
-| **3. Workflow Automation** | Approval Hierarchy | Configurable approval routes (Department Head → CEO → Accounts). |
-|  | Ticket States & Transitions | Defined states: *Draft, Submitted, Pending, Under_Review, Assigned, In_Progress, Waiting_Approval, Approved/Rejected, Resolved, Closed, Reopened, Postponed*. |
-| **4. Dashboard & Analytics** | Department Dashboard | Each department sees its open, pending, and resolved tickets. |
-|  | CEO/Management Dashboard | Organization-level ticket overview and insights. |
-| **5. Notification System** | Real-Time Alerts | Notify users on ticket updates, approvals, or assignments. |
-| **6. Integration Layer** | SMS Integration API | Synchronize employee and department data between SMS and HDMS. |
-|  | Centralized User Directory | Unified storage for employees across systems. |
-| **7. Deployment Setup** | Cloud or Internal Deployment | Stable version hosted for Idara Al-Khair's internal use. |
-| **8. Documentation (Basic)** | API & Module Documentation | Technical documentation for internal maintenance. |
+| Category | Deliverable | Description | Status |
+| ----- | ----- | ----- | ----- |
+| **1. Authentication Module** | Centralized Employee Login | Integration with auth-service for shared employee credentials. | ✅ Complete |
+|  | Role & Access Control | Admin can authorize employees for HDMS access (requestor, moderator, assignee, admin). | ✅ Complete |
+| **2. Ticketing System** | Ticket Creation & Tracking | Department-wise request creation with status updates. | ✅ Complete |
+|  | Ticket Status Transitions | FSM-based status management (draft → submitted → ... → closed). | ✅ Complete |
+|  | Ticket Assignment | Moderator can assign tickets to departments/assignees. | ✅ Complete |
+|  | Progress Tracking | Assignees can update progress percentage. | ✅ Complete |
+|  | Linked/Sub-Tickets | Support multi-department workflows under a single parent ticket. | ⏳ Phase 2 |
+|  | Chat System | Discussion area for all users involved in a ticket. | ⚠️ HTTP only (WebSocket pending) |
+|  | File Attachments | Upload supporting documents via file-service. | ⚠️ Integration pending |
+| **3. Workflow Automation** | Approval Hierarchy | Configurable approval routes (Department Head → CEO → Accounts). | ⏳ Phase 2 |
+|  | Ticket States & Transitions | Defined states: Draft, Submitted, Pending, Under_Review, Assigned, In_Progress, etc. | ✅ Complete |
+| **4. Dashboard & Analytics** | Department Dashboard | Each department sees its open, pending, and resolved tickets. | ⚠️ Basic (needs polish) |
+|  | CEO/Management Dashboard | Organization-level ticket overview and insights. | ⏳ Phase 2 |
+| **5. Notification System** | Real-Time Alerts | Notify users on ticket updates, approvals, or assignments. | ⏳ WebSocket pending |
+| **6. Integration Layer** | Auth Service Integration | Employee and department data from auth-service. | ✅ Complete |
+|  | ~~SMS Integration API~~ | ~~Sync from external SMS system~~ | N/A (handled by auth-service) |
+| **7. Deployment Setup** | Local Development | Docker Compose orchestration for all services. | ✅ Complete |
+|  | Production Deployment | Cloud deployment configuration. | ⏳ Phase 2 |
+| **8. Documentation** | Architecture Documentation | Microservices architecture and API documentation. | ✅ Complete |
 
 ---
 
-### **Expected MVP Output**
+### **Current MVP Status**
 
-At the end of 1 month, Idara Al-Khair will have a **fully functional internal Help Desk Management System (HDMS)** capable of:
+At the current stage, HDMS has a **functional core ticketing system** capable of:
 
-* Handling multi-department requests
-
-* Managing interlinked ticket workflows
-
-* Operating with shared employee data from SMS
-
-* Providing a management dashboard for real-time operational insight
-
-* Supporting real-time chat for all ticket participants
-
-* Automating approval workflows
-
-* Tracking ticket lifecycle with full audit trails
+* ✅ Handling ticket lifecycle from draft to closed
+* ✅ Role-based access (requestor, moderator, assignee, admin)
+* ✅ Ticket assignment and progress tracking
+* ✅ Audit logging of all actions
+* ⚠️ Chat messaging (HTTP-based, WebSocket pending)
+* ⚠️ File attachments (file-service integration pending)
 
 ---
 
@@ -53,45 +52,54 @@ At the end of 1 month, Idara Al-Khair will have a **fully functional internal He
 #### **Core Features**
 - [x] Role-based authentication (requestor, Moderator, Assignee, Admin)
 - [x] Ticket creation and submission
-- [x] Draft saving (soft-deleted after 7 days)
+- [x] Draft saving
 - [x] Ticket assignment to departments
-- [x] Status tracking and transitions
-- [x] Real-time chat system
-- [x] File attachments
-- [x] Sub-ticket creation (Moderator only)
-- [x] Approval workflow (Finance → CEO)
-- [x] Postponement with reminders
-- [x] Auto-close functionality
-- [x] Reopen capability (max 2 times)
-- [x] Notification system
+- [x] Status tracking and transitions (FSM)
+- [x] Progress percentage updates
+- [x] SLA/Due date management
+- [x] Ticket acknowledgment
 - [x] Audit logging
+- [ ] Real-time chat system (WebSocket)
+- [ ] File attachments via file-service
+- [ ] Sub-ticket creation (Moderator only)
+- [ ] Approval workflow (Finance → CEO)
+- [ ] Postponement with reminders
+- [ ] Auto-close functionality
+- [ ] Reopen capability (max 2 times)
+- [ ] Real-time notifications
 
 #### **Dashboard Features**
-- [x] Department dashboard
-- [x] CEO/Management dashboard
-- [x] Personal analytics (requestor)
-- [x] Department metrics (Assignee)
-- [x] System-wide analytics (Admin/Moderator)
+- [x] Department dashboard (basic)
+- [ ] CEO/Management dashboard
+- [ ] Personal analytics (requestor)
+- [ ] Department metrics (Assignee)
+- [ ] System-wide analytics (Admin/Moderator)
 
 #### **Integration Features**
-- [x] SMS user authentication
-- [x] Employee data sync
-- [x] Role authorization control
+- [x] Auth-service authentication
+- [x] Employee data from auth-service
+- [x] Department data from auth-service
 
 ---
 
-### **Out of Scope (for MVP, but Planned Later)**
+### **Out of Scope (Phase 2 and Later)**
 
 These will be part of **Phase 2** or later versions:
 
+* Sub-ticket creation and management
+* Approval workflow (Finance/CEO)
+* Postponement with automatic reminders
+* Auto-close after 3 days
 * AI-powered ticket classification and priority tagging
 * SLA tracking and automated escalation
 * Voice-based ticket interaction
-* requestor satisfaction surveys
+* Requestor satisfaction surveys
 * Organization-wide analytics dashboard
 * Mobile application version
 * Advanced reporting and exports
 * Custom workflow builder
+* Email notifications
+* CI/CD pipeline
 
 ---
 
@@ -99,76 +107,88 @@ These will be part of **Phase 2** or later versions:
 
 #### **Architecture**
 - [x] Microservices architecture with Docker
-- [x] 5 independent services (User, Ticket, Communication, File, Frontend)
-- [x] API Gateway (Nginx) for request routing
-- [x] Shared PostgreSQL database (initially)
+- [x] 4 active services (auth-service, ticket-service, communication-service, file-service, frontend-service)
+- [ ] ~~User-service~~ - **DEPRECATED** (use auth-service)
+- [x] Shared PostgreSQL database (via PgBouncer)
 - [x] Docker Compose orchestration
-- [x] Inter-service HTTP clients
 - [x] Shared BaseModel for consistency
 
 #### **Frontend**
 * Next.js 15 application with TypeScript
 * Role-based routing and layouts
-* Real-time chat interface
-* Dashboard components
-* Responsive design
+* Ticket list and detail views
+* Chat interface (needs UI polish)
+* Dashboard components (basic)
+* Responsive design (needs improvement)
 
 #### **Backend**
 * Django 5 + Django Ninja API
 * PostgreSQL database with PgBouncer connection pooling
-* Django Channels for WebSockets (native WebSocket, not Socket.IO)
-* Celery for background tasks (high/low priority queues)
-* Redis for caching (Cache-Aside pattern) and queues
+* Django Channels for WebSockets (pending implementation)
+* Celery for background tasks (pending)
+* Redis for caching and queues
 * django-fsm for state machine implementation
-* Optimistic locking (version fields) and pessimistic locking
-* Transaction management with @transaction.atomic
+* Audit logging
 
 #### **Infrastructure**
-* Deployment configuration
-* Environment setup (secrets management via environment variables)
-* Database migrations (with rollback procedures)
-* Database backup strategy (daily full backups, 15-30 minute transaction logs)
-* CI/CD pipeline (basic) - deferred to later phase
-* Observability infrastructure - deferred to production phase
+* Docker Compose for local development
+* PostgreSQL 16 + PgBouncer
+* Redis 7
+* Environment-based configuration
 
 ---
 
 ### **Documentation Deliverables**
 
-* API documentation (OpenAPI/Swagger auto-generated)
-* Database schema documentation
-* Deployment guide
-* User guides (per role)
-* Developer onboarding guide
-* Architecture documentation (Technical Architecture document)
-* Business rules documentation
-* API versioning strategy documentation
+* ✅ Architecture documentation (Microservices Architecture)
+* ✅ Database schema documentation
+* ✅ Ticket lifecycle documentation
+* ✅ Roles and permissions documentation
+* ✅ Business rules documentation
+* [ ] API documentation (OpenAPI/Swagger)
+* [ ] Deployment guide
+* [ ] User guides (per role)
+* [ ] Developer onboarding guide
 
 ---
 
-### **Testing Deliverables**
+### **Priority for Next Sprint**
 
-* Unit tests (Frontend & Backend)
-* Integration tests
-* End-to-end test scenarios
-* Test coverage reports
-* **Test Coverage Target:** 80%+ code coverage
-* **Performance Testing:** Load testing for API endpoints, stress testing for WebSocket connections
-* **Security Testing:** Authentication/authorization tests, input validation tests, SQL injection tests, XSS prevention tests
+1. **Chat UI/UX Improvements**
+   - Unified, responsive chat component
+   - User-friendly message input
+   - Consistent layout across all roles
+
+2. **WebSocket Implementation**
+   - Django Channels setup
+   - Real-time chat messaging
+   - Real-time notifications
+
+3. **File Service Integration**
+   - Route all attachment uploads through file-service
+   - Remove file handling from ticket-service
+   - UI integration for file uploads
+
+4. **UI/UX Polish**
+   - Fix known UI bugs
+   - Consistent styling
+   - Better loading states and error handling
 
 ---
 
-### **Success Metrics**
+### **Success Metrics (for Phase 1 Completion)**
 
 The MVP will be considered successful if:
 
-* 100% of the seven pilot departments onboarded successfully
-* All tickets routed through the Moderator workflow
-* Ticket closure verification functional and auditable
-* Minimum 50% of authorized employees logging in and submitting/approving requests within the first month
-* System replaces at least 60–70% of WhatsApp-based approval traffic
-* Core metrics (speed, uptime, and adoption) meet targets
+* ✅ Core ticket workflow operates end-to-end
+* ✅ All status transitions work correctly
+* ⏳ Real-time chat works via WebSocket
+* ⏳ Attachments upload via file-service
+* ⏳ UI is polished and user-friendly
+* ⏳ All roles can complete their primary workflows
 
+---
 
-
-
+**Environment:** Local Development  
+**CI/CD:** Not configured  
+**Timeline:** ASAP

@@ -172,6 +172,8 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(minutes=config('REFRESH_TOKEN_LIFETIME', default=1440, cast=int)),
     'ALGORITHM': config('JWT_ALGORITHM', default='HS256'),
     'SIGNING_KEY': config('JWT_SECRET_KEY', default=SECRET_KEY),
+    'USER_ID_FIELD': 'employee_id',
+    'USER_ID_CLAIM': 'employee_id',
 }
 
 # REST Framework

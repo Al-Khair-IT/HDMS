@@ -188,15 +188,11 @@ export default function ReviewTicketPage() {
                     )}
                 </div>
 
-                {/* Right: Chat (1/3) */}
-                <div className="hidden lg:block">
+                {/* Right: Chat (1/3) & Mobile Elements */}
+                {/* Rendered once - Layout handled by UnifiedChatPanel component */}
+                <div>
                     <TicketChatPanel ticketId={ticket.id} />
                 </div>
-            </div>
-
-            {/* Mobile Chat */}
-            <div className="lg:hidden">
-                <TicketChatPanel ticketId={ticket.id} />
             </div>
 
             {/* Modals - Only show for moderators */}

@@ -10,7 +10,44 @@ from apps.files.services.upload_service import UploadService
 from core.clients.user_client import UserClient
 from core.clients.ticket_client import TicketClient
 
-router = Router(tags=["files"])
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from ninja.security import HttpBearer
+
+class JWTAuth(HttpBearer):
+    def authenticate(self, request, token):
+        try:
+            auth = JWTAuthentication()
+            validated_token = auth.get_validated_token(token)
+            
+            # JIT Sync: Ensure user exists locally
+            user_id = validated_token.get('user_id')
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                # Provision user from token
+                payload = validated_token
+                full_name = payload.get('full_name', '')
+                names = full_name.split(' ')
+                user = User.objects.create(
+                    id=user_id,
+                    employee_code=payload.get('employee_code'),
+                    first_name=names[0] if names else '',
+                    last_name=' '.join(names[1:]) if len(names) > 1 else '',
+                    email=payload.get('email'),
+                    role=payload.get('role', 'requestor'),
+                    is_active=payload.get('is_active', True)
+                )
+                print(f"✅ JIT synced user in File API: {user.employee_code}")
+                
+            return user
+        except Exception as e:
+            print(f"DEBUG File API: Auth failed: {str(e)}")
+            return None
+
+router = Router(tags=["files"], auth=JWTAuth())
 
 
 @router.post("/upload", response=FileUploadResponse)

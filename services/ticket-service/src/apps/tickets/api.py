@@ -4,7 +4,7 @@ Ticket Service API endpoints.
 from ninja import Router, File, UploadedFile
 from ninja.errors import HttpError
 from typing import List, Optional
-from apps.tickets.schemas import TicketOut, TicketIn, TicketUpdateIn, StatusUpdateIn, AttachmentOut
+from apps.tickets.schemas import TicketOut, TicketIn, TicketUpdateIn, StatusUpdateIn, AttachmentOut, AttachmentCreateIn
 from apps.tickets.models.ticket import Ticket
 from apps.tickets.models.sub_ticket import SubTicket
 from apps.tickets.models.attachment import Attachment
@@ -18,7 +18,44 @@ from apps.tickets.schemas import AuditLogOut, TicketProgressIn, TicketAcknowledg
 from django.utils import timezone
    
 
-router = Router(tags=["tickets"])
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from ninja.security import HttpBearer
+
+class JWTAuth(HttpBearer):
+    def authenticate(self, request, token):
+        try:
+            auth = JWTAuthentication()
+            validated_token = auth.get_validated_token(token)
+            
+            # JIT Sync: Ensure user exists locally
+            user_id = validated_token.get('user_id')
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                # Provision user from token
+                payload = validated_token
+                full_name = payload.get('full_name', '')
+                names = full_name.split(' ')
+                user = User.objects.create(
+                    id=user_id,
+                    employee_code=payload.get('employee_code'),
+                    first_name=names[0] if names else '',
+                    last_name=' '.join(names[1:]) if len(names) > 1 else '',
+                    email=payload.get('email'),
+                    role=payload.get('role', 'requestor'),
+                    is_active=payload.get('is_active', True)
+                )
+                print(f"✅ JIT synced user in Ticket API: {user.employee_code}")
+                
+            return user
+        except Exception as e:
+            print(f"DEBUG Ticket API: Auth failed: {str(e)}")
+            return None
+
+router = Router(tags=["tickets"], auth=JWTAuth())
 
 
 @router.post("/", response=TicketOut)
@@ -138,8 +175,8 @@ def list_sub_tickets(request, ticket_id: str):
     return [TicketOut.from_orm(st) for st in sub_tickets]
 
 @router.post("/{ticket_id}/attachments", response=AttachmentOut)
-def upload_attachment(request, ticket_id: str, file: UploadedFile = File(...)):
-    """Upload an attachment for a ticket."""
+def add_attachment(request, ticket_id: str, payload: AttachmentCreateIn):
+    """Add an attachment reference to a ticket."""
     try:
         ticket = Ticket.objects.get(id=ticket_id, is_deleted=False)
     except Ticket.DoesNotExist:
@@ -147,10 +184,10 @@ def upload_attachment(request, ticket_id: str, file: UploadedFile = File(...)):
 
     attachment = Attachment.objects.create(
         ticket=ticket,
-        file=file,
-        filename=file.name,
-        file_size=file.size,
-        content_type=file.content_type
+        file_id=payload.file_id,
+        filename=payload.filename,
+        file_size=payload.file_size,
+        content_type=payload.content_type
     )
     return attachment
 

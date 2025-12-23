@@ -39,6 +39,7 @@ export interface Ticket {
   completedDate?: string;
   resolvedDate?: string;
   completionNote?: string;
+  completionImage?: string;
   attachments?: {
     id: string;
     name: string;

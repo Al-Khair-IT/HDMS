@@ -21,7 +21,6 @@ class ChatMessageOut(Schema):
 class ChatMessageIn(Schema):
     """Chat message input schema."""
     ticket_id: str
-    sender_id: str
     message: str
     mentions: List[str] = []
 

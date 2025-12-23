@@ -11,25 +11,47 @@ import {
   Settings,
   TrendingUp,
   Inbox,
-  ChevronRight,
-  X,
-  LogOut, // Add LogOut icon
-  Building
+  LogOut,
+  Building,
+  X
 } from 'lucide-react';
-import { useAuth } from '../../lib/auth'; // Import useAuth hook
+import { useAuth } from '../../lib/auth';
 import { Logo } from '../ui/logo';
 
 interface SidebarProps {
   role: string;
   currentPage: string;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onToggle }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth(); // Get logout function
-  const [isOpen, setIsOpen] = useState(true);
+  const { logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // We should also expose a way to toggle mobile sidebar from parent if needed, 
+  // but for now local state handles the mobile drawer itself, BUT the parent Layout needs to know about mobile toggle trigger.
+  // Actually, usually a hamburger menu in Navbar triggers mobile sidebar.
+  // For now let's keep mobile logic here BUT listen to an event or expose a method? 
+  // Or better, let parent handle mobile state too if Navbar has the toggle.
+  // The current Sidebar has its own mobile drawer. How does it open? 
+  // There is NO button visible on mobile to open it in this component? 
+  // Ah, the previous code had "Toggle Button - REMOVE THIS ENTIRE SECTION".
+  // And it had `mobileSidebarOpen` state but only overlay and drawer used it.
+  // The trigger must be external (Navbar) or I missed it.
+  // Let's assume Navbar will trigger it. So we need `mobileOpen` prop too?
+  // Let's stick to the requested changes: "Collapsible desktop sidebar".
+  // I will add a `useEffect` to listen for mobile toggle if needed, or better, 
+  // just assume layout passes `mobileOpen` too.
+  // But let's first fix the desktop collapse.
+
+  // React.useEffect(() => {
+  //   const handleMobileToggle = () => setMobileSidebarOpen(prev => !prev);
+  //   window.addEventListener('toggleMobileSidebar', handleMobileToggle);
+  //   return () => window.removeEventListener('toggleMobileSidebar', handleMobileToggle);
+  // }, []);
 
   const getSidebarItems = (role: string) => {
     switch (role) {
@@ -61,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
       case 'admin':
         return [
           { name: 'Dashboard', url: `/${role}/dashboard`, icon: Home },
+          { name: 'All Requests', url: `/${role}/requests`, icon: FileText },
           { name: 'Users', url: `/${role}/users`, icon: Users },
           { name: 'Employees', url: `/${role}/employees`, icon: UserPlus },
           { name: 'Departments', url: `/${role}/departments`, icon: Building },
@@ -75,18 +98,16 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
 
   const sidebarItems = getSidebarItems(role);
 
-  // Handle logout
   const handleLogout = () => {
-    logout(); // This will clear localStorage and redirect to /login
+    logout();
   };
 
-  // Desktop Sidebar - SIS Style
   return (
     <>
       {/* Desktop Sidebar */}
       <aside
         className={`hidden md:block fixed left-0 top-0 bottom-0 z-[60] h-screen transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${isOpen ? 'w-72 md:w-64 lg:w-72' : 'w-18'}
+          ${isOpen ? 'w-72 md:w-64 lg:w-72' : 'w-20'}
           ${isOpen ? 'bg-[#e7ecef]' : 'bg-[#a3cef1]'}
           rounded-r-3xl
           border-r-[3px] border-[#1c3f67]
@@ -105,18 +126,18 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
               size="full"
               showText={true}
               showSubtitle={true}
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={onToggle}
             />
           ) : (
             <Logo
               size="md"
               showText={false}
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={onToggle}
             />
           )}
         </div>
 
-        {/* Menu Items - Scrollable */}
+        {/* Menu Items */}
         <nav className={`px-4 py-4 space-y-2 flex-1 overflow-y-auto hide-scrollbar ${isOpen ? '' : 'px-2'}`}>
           {sidebarItems.map((item, index) => {
             const Icon = item.icon;
@@ -147,11 +168,10 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
                 />
                 {isOpen && (
                   <span
-                    className="ml-3 transition-all duration-500"
+                    className="ml-3 transition-all duration-500 whitespace-nowrap overflow-hidden"
                     style={{
                       opacity: isOpen ? 1 : 0,
                       maxWidth: isOpen ? '200px' : '0',
-                      marginLeft: isOpen ? '0.75rem' : '0',
                     }}
                   >
                     {item.name}
@@ -162,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           })}
         </nav>
 
-        {/* Logout Button - At Bottom */}
+        {/* Logout Button */}
         <div className={`px-4 pb-4 pt-2 ${isOpen ? '' : 'px-2'}`}>
           <button
             onClick={handleLogout}
@@ -183,11 +203,10 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
             />
             {isOpen && (
               <span
-                className="ml-3 transition-all duration-500"
+                className="ml-3 transition-all duration-500 whitespace-nowrap overflow-hidden"
                 style={{
                   opacity: isOpen ? 1 : 0,
                   maxWidth: isOpen ? '200px' : '0',
-                  marginLeft: isOpen ? '0.75rem' : '0',
                 }}
               >
                 Logout
@@ -195,16 +214,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
             )}
           </button>
         </div>
-
-        {/* Toggle Button - REMOVE THIS ENTIRE SECTION (lines 189-195) */}
-        {/* DELETE THIS:
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-[#1c3f67] rounded-full flex items-center justify-center text-white hover:bg-[#365486] transition-all"
-        >
-          {isOpen ? '←' : '→'}
-        </button>
-        */}
       </aside>
 
       {/* Mobile Overlay */}
@@ -237,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           </button>
         </div>
 
-        {/* Mobile Menu Items - Scrollable */}
+        {/* Mobile Menu Items */}
         <nav className="px-4 py-4 space-y-2 flex-1 overflow-y-auto hide-scrollbar">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
@@ -265,7 +274,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
           })}
         </nav>
 
-        {/* Mobile Logout Button - At Bottom */}
+        {/* Mobile Logout */}
         <div className="px-4 pb-4 pt-2 border-t border-[#8b8c89]/20">
           <button
             onClick={() => {
@@ -289,6 +298,4 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({ role, currentPage }
       </div>
     </>
   );
-});
-
-Sidebar.displayName = 'Sidebar';
+};

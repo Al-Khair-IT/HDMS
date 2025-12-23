@@ -78,46 +78,36 @@ const AdminDashboardPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch tickets
+        // Fetch both resources in parallel
+        const [ticketsResult, usersResult] = await Promise.allSettled([
+          ticketService.getTickets(),
+          userService.getUsers()
+        ]);
+
+        // Process Tickets
         let ticketsList: Ticket[] = [];
-        try {
-          const ticketsResponse = await ticketService.getTickets();
-          ticketsList = Array.isArray(ticketsResponse)
-            ? ticketsResponse
-            : (ticketsResponse?.results || []);
-          if (ticketsList.length === 0) {
-            ticketsList = generateDemoTickets();
-          }
-        } catch (error: any) {
-          const isNetworkError = error?.isNetworkError || !error?.response;
-          if (isNetworkError) {
-            console.warn('API not available, using demo tickets');
-            ticketsList = generateDemoTickets();
-          } else {
-            console.warn('API returned error, using demo tickets:', error);
-            ticketsList = generateDemoTickets();
-          }
+        if (ticketsResult.status === 'fulfilled') {
+          const response = ticketsResult.value;
+          ticketsList = Array.isArray(response) ? response : (response?.results || []);
+        } else {
+          console.warn('Tickets API failed, using demo data:', ticketsResult.reason);
         }
 
-        // Fetch users
+        if (ticketsList.length === 0) {
+          ticketsList = generateDemoTickets();
+        }
+
+        // Process Users
         let usersList: User[] = [];
-        try {
-          const usersResponse = await userService.getUsers();
-          usersList = Array.isArray(usersResponse)
-            ? usersResponse
-            : (usersResponse?.results || []);
-          if (usersList.length === 0) {
-            usersList = generateDemoUsers();
-          }
-        } catch (error: any) {
-          const isNetworkError = error?.isNetworkError || !error?.response;
-          if (isNetworkError) {
-            console.warn('API not available, using demo users');
-            usersList = generateDemoUsers();
-          } else {
-            console.warn('API returned error, using demo users:', error);
-            usersList = generateDemoUsers();
-          }
+        if (usersResult.status === 'fulfilled') {
+          const response = usersResult.value;
+          usersList = Array.isArray(response) ? response : (response?.results || []);
+        } else {
+          console.warn('Users API failed, using demo data:', usersResult.reason);
+        }
+
+        if (usersList.length === 0) {
+          usersList = generateDemoUsers();
         }
 
         setTickets(ticketsList);

@@ -78,40 +78,7 @@ services:
       retries: 3
       start_period: 5s
 
-  # User Service
-  user-service:
-    build:
-      context: ./services/user-service
-      dockerfile: Dockerfile
-    container_name: hdms-user-service
-    environment:
-      - DEBUG=True
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
-      - REDIS_URL=redis://redis:6379/0
-      - USER_SERVICE_URL=http://user-service:8001
-      - TICKET_SERVICE_URL=http://ticket-service:8002
-      - COMMUNICATION_SERVICE_URL=http://communication-service:8003
-      - FILE_SERVICE_URL=http://file-service:8005
-    volumes:
-      - ./services/user-service/src:/app
-      - ./services/shared:/shared
-    ports:
-      - "8001:8001"
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8001/health/" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    depends_on:
-      pgbouncer:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - backend-network
-      - hdms_network
-    restart: unless-stopped # Ticket Service
+  # Ticket Service
   ticket-service:
     build:
       context: ./services/ticket-service
@@ -121,13 +88,14 @@ services:
       - DEBUG=True
       - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
-      - USER_SERVICE_URL=http://user-service:8001
-      - TICKET_SERVICE_URL=http://ticket-service:8002
+      - USER_SERVICE_URL=http://host.docker.internal:8000
       - TICKET_SERVICE_URL=http://ticket-service:8002
       - COMMUNICATION_SERVICE_URL=http://communication-service:8003
       - FILE_SERVICE_URL=http://file-service:8005
       - DB_HOST=pgbouncer
       - DB_PORT=6432
+      - SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
+      - JWT_SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
     volumes:
       - ./services/ticket-service/src:/app
       - ./services/shared:/shared
@@ -137,19 +105,18 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8002/health/" ]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 45s
     depends_on:
       pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
-      user-service:
-        condition: service_healthy # Changed from service_started
     networks:
       - backend-network
       - hdms_network
     restart: unless-stopped
+
   # Communication Service
   communication-service:
     build:
@@ -161,34 +128,32 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
       - CHANNEL_LAYER_REDIS=redis://redis:6379/1
-      - USER_SERVICE_URL=http://user-service:8001
-      - TICKET_SERVICE_URL=http://ticket-service:8002
+      - USER_SERVICE_URL=http://host.docker.internal:8000
       - TICKET_SERVICE_URL=http://ticket-service:8002
       - COMMUNICATION_SERVICE_URL=http://communication-service:8003
       - FILE_SERVICE_URL=http://file-service:8005
       - DB_HOST=pgbouncer
       - DB_PORT=6432
+      - SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
+      - JWT_SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
     volumes:
       - ./services/communication-service/src:/app
       - ./services/shared:/shared
     ports:
       - "8003:8003"
-      - "8004:8004"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8003/health/" ]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 60s
     depends_on:
       pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
-      user-service:
-        condition: service_healthy # Changed from service_started
       ticket-service:
-        condition: service_healthy # Changed from service_started
+        condition: service_healthy
     networks:
       - backend-network
       - hdms_network
@@ -203,7 +168,7 @@ services:
       - DEBUG=True
       - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
       - REDIS_URL=redis://redis:6379/0
-      - USER_SERVICE_URL=http://user-service:8001
+      - USER_SERVICE_URL=http://host.docker.internal:8000
       - TICKET_SERVICE_URL=http://ticket-service:8002
       - COMMUNICATION_SERVICE_URL=http://communication-service:8003
       - FILE_SERVICE_URL=http://file-service:8005
@@ -217,15 +182,13 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8005/health/" ]
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 45s
     depends_on:
       pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
-      user-service:
-        condition: service_healthy # Changed from service_started
       ticket-service:
         condition: service_healthy # Changed from service_started
     networks:
@@ -299,8 +262,6 @@ services:
     ports:
       - "3001:3000"
     depends_on:
-      user-service:
-        condition: service_healthy
       ticket-service:
         condition: service_healthy
       communication-service:
@@ -323,8 +284,6 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      user-service:
-        condition: service_healthy
       ticket-service:
         condition: service_healthy
       communication-service:

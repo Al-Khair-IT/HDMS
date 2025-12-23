@@ -9,6 +9,7 @@ export const ENV = {
   AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:8000',
   TICKET_SERVICE_URL: process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || 'http://localhost:8002',
   COMMUNICATION_SERVICE_URL: process.env.NEXT_PUBLIC_COMMUNICATION_SERVICE_URL || 'http://localhost:8003',
+  FILE_SERVICE_URL: process.env.NEXT_PUBLIC_FILE_SERVICE_URL || 'http://localhost:8005',
   WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000',
 
   // App Configuration
@@ -39,4 +40,3 @@ export const validateEnv = (): void => {
 if (typeof window !== 'undefined') {
   validateEnv();
 }
-

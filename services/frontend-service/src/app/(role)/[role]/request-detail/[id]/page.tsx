@@ -12,7 +12,7 @@ import { TicketTimeline } from '../../../../../components/common/TicketTimeline'
 import { ParticipantsCard } from '../../../../../components/common/ParticipantsCard';
 import { AttachmentsCard } from '../../../../../components/common/AttachmentsCard';
 import { SLACard } from '../../../../../components/common/SLACard';
-import TicketChat from '../../../../../components/common/TicketChat';
+import { UnifiedChatPanel } from '../../../../../components/chat/UnifiedChatPanel';
 import { Button } from '../../../../../components/ui/Button';
 import { ResolveModal, ReopenModal } from '../../../../../components/modals/TicketActionModals';
 import {
@@ -26,7 +26,6 @@ import {
   User,
   Calendar,
   Clock,
-  FileText,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -34,7 +33,7 @@ import { THEME } from '../../../../../lib/theme';
 import { Ticket } from '../../../../../types';
 import { ticketService } from '../../../../../services/api/ticketService';
 import { formatDate, formatRelativeTime } from '../../../../../lib/helpers';
-import { getMockTicketById } from '../../../../../lib/mockData';
+
 
 export default function RequestDetailPage() {
   const params = useParams();
@@ -65,40 +64,18 @@ export default function RequestDetailPage() {
 
       setLoading(true);
       try {
-        try {
-          const data = await ticketService.getTicketById(ticketId);
-          setTicket(data);
-          setActiveTicket(data);
-          setError(null);
-          // Get reopen count from ticket metadata or API
-          setReopenCount((data as any).reopenCount || 0);
-        } catch (apiError: any) {
-          console.warn('API not available, attempting fallback to mock data');
-          // If API fails, try mock data specifically for this ID
-          const mockTicket = getMockTicketById(ticketId, user?.id);
-          if (mockTicket) {
-            console.log('Using mock data for ticket:', mockTicket.id);
-            setTicket(mockTicket);
-            setActiveTicket(mockTicket);
-            setError(null);
-            setReopenCount(0);
-          } else {
-            // If neither API nor mock has it, show error
-            throw apiError;
-          }
-        }
+        const data = await ticketService.getTicketById(ticketId);
+        setTicket(data);
+        setActiveTicket(data);
+        setError(null);
+        // Get reopen count from ticket metadata or API
+        setReopenCount((data as any).reopenCount || 0);
       } catch (err: any) {
         console.error('Error fetching ticket:', err);
-        const mockTicket = getMockTicketById(ticketId, user?.id);
-        if (mockTicket) {
-          setTicket(mockTicket);
-          setActiveTicket(mockTicket);
-          setError(null);
-        } else {
-          setError(err?.message || 'Failed to load ticket');
-          setTicket(null);
-        }
+        setError(err?.message || 'Failed to load ticket');
+        setTicket(null);
       } finally {
+
         setLoading(false);
       }
     };
@@ -260,6 +237,7 @@ export default function RequestDetailPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6" style={{ backgroundColor: '#e7ecef', minHeight: '100vh' }}>
       <div className="max-w-7xl mx-auto space-y-6">
+
         {/* Header Card */}
         <Card className="shadow-lg">
           <CardContent className="p-6">
@@ -316,210 +294,209 @@ export default function RequestDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Main Content - All cards full width like header */}
-        <div className="space-y-6">
-          {/* Ticket Info & Participants Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Ticket Info Card */}
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
-                  Ticket Information
-                </h3>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Building2 className="w-4 h-4 text-gray-500" />
-                    <p className="text-sm text-gray-600">Department</p>
-                  </div>
-                  <p className="font-medium text-gray-900">{ticket.department}</p>
-                </div>
+        {/* 2-Column Grid Layout */}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-6">
 
-                {(ticket as any).category && (
+          {/* Left Column: Ticket Details (2/3) */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Ticket Info & Participants Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Ticket Info Card */}
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
+                    Ticket Information
+                  </h3>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <Tag className="w-4 h-4 text-gray-500" />
-                      <p className="text-sm text-gray-600">Category</p>
+                      <Building2 className="w-4 h-4 text-gray-500" />
+                      <p className="text-sm text-gray-600">Department</p>
                     </div>
-                    <p className="font-medium text-gray-900">{(ticket as any).category}</p>
+                    <p className="font-medium text-gray-900">{ticket.department}</p>
                   </div>
-                )}
 
-                {ticket.assigneeName && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <User className="w-4 h-4 text-gray-500" />
-                      <p className="text-sm text-gray-600">Assignee</p>
+                  {(ticket as any).category && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Tag className="w-4 h-4 text-gray-500" />
+                        <p className="text-sm text-gray-600">Category</p>
+                      </div>
+                      <p className="font-medium text-gray-900">{(ticket as any).category}</p>
                     </div>
-                    <p className="font-medium text-gray-900">{ticket.assigneeName}</p>
-                  </div>
-                )}
-
-                {/* SLA Card */}
-                <SLACard
-                  submittedDate={ticket.submittedDate}
-                  dueDate={(ticket as any).dueDate}
-                  slaHours={(ticket as any).slaHours || 72}
-                  status={ticket.status}
-                />
-
-                {(ticket as any).dueDate && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      <p className="text-sm text-gray-600">Due Date</p>
-                    </div>
-                    <p className="font-medium text-gray-900">
-                      {formatDate((ticket as any).dueDate, 'long')}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Participants Card */}
-            <ParticipantsCard ticket={ticket} />
-          </div>
-
-          {/* Description Card */}
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
-                Description
-              </h3>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {displayDescription}
-              </p>
-              {isLongDescription && (
-                <button
-                  onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-                  className="mt-3 flex items-center gap-1 text-sm font-medium"
-                  style={{ color: THEME.colors.primary }}
-                >
-                  {descriptionExpanded ? (
-                    <>
-                      <ChevronUp className="w-4 h-4" />
-                      Show Less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="w-4 h-4" />
-                      Show More
-                    </>
                   )}
-                </button>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Attachments Card */}
-          {ticket.attachments && ticket.attachments.length > 0 && (
-            <AttachmentsCard
-              ticketAttachments={ticket.attachments}
-              onDownload={handleDownload}
-            />
-          )}
+                  {ticket.assigneeName && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <p className="text-sm text-gray-600">Assignee</p>
+                      </div>
+                      <p className="font-medium text-gray-900">{ticket.assigneeName}</p>
+                    </div>
+                  )}
 
-          {/* Timeline Card */}
-          <TicketTimeline ticket={ticket} />
+                  {/* SLA Card */}
+                  <SLACard
+                    submittedDate={ticket.submittedDate}
+                    dueDate={(ticket as any).dueDate}
+                    slaHours={(ticket as any).slaHours || 72}
+                    status={ticket.status}
+                  />
 
-          {/* Chat Section */}
-          {ticket.status !== ('draft' as any) && (
+                  {(ticket as any).dueDate && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <p className="text-sm text-gray-600">Due Date</p>
+                      </div>
+                      <p className="font-medium text-gray-900">
+                        {formatDate((ticket as any).dueDate, 'long')}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Participants Card */}
+              <ParticipantsCard ticket={ticket} />
+            </div>
+
+            {/* Description Card */}
             <Card>
               <CardHeader>
                 <h3 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
-                  Comments & Chat
-                </h3>
-              </CardHeader>
-              <CardContent className="p-0">
-                <TicketChat ticketId={ticket.id} />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Action Buttons Card */}
-          {(canEdit || canResolve || canReopen || canCancel) && (
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
-                  Actions
+                  Description
                 </h3>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Submit Draft Button */}
-                  {ticket.status === ('draft' as any) && (
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      leftIcon={<CheckCircle className="w-4 h-4" />}
-                      onClick={handleSubmit}
-                      disabled={loading}
-                    >
-                      {loading ? 'Submitting...' : 'Submit Ticket'}
-                    </Button>
-                  )}
-
-                  {canEdit && (
-                    <Button
-                      variant="outline"
-                      fullWidth
-                      leftIcon={<Edit className="w-4 h-4" />}
-                      onClick={() => router.push(`/requestor/new-request?edit=${ticket.id}`)}
-                    >
-                      Edit Request
-                    </Button>
-                  )}
-
-                  {canResolve && (
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      leftIcon={<CheckCircle className="w-4 h-4" />}
-                      onClick={() => setShowResolveModal(true)}
-                    >
-                      Resolve
-                    </Button>
-                  )}
-
-                  {canReopen && (
-                    <Button
-                      variant="outline"
-                      fullWidth
-                      leftIcon={<RefreshCw className="w-4 h-4" />}
-                      onClick={() => setShowReopenModal(true)}
-                      disabled={reopenCount >= 2}
-                    >
-                      Request Reopen
-                    </Button>
-                  )}
-
-                  {canCancel && (
-                    <Button
-                      variant="outline"
-                      fullWidth
-                      leftIcon={<XCircle className="w-4 h-4" />}
-                      onClick={handleCancel}
-                      style={{ color: THEME.colors.error }}
-                    >
-                      Delete Draft
-                    </Button>
-                  )}
-                </div>
-
-                {!canEdit && ticket.status !== ('draft' as any) && (
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-xs text-yellow-800">
-                      This ticket cannot be edited after submission.
-                    </p>
-                  </div>
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {displayDescription}
+                </p>
+                {isLongDescription && (
+                  <button
+                    onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                    className="mt-3 flex items-center gap-1 text-sm font-medium"
+                    style={{ color: THEME.colors.primary }}
+                  >
+                    {descriptionExpanded ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        Show Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        Show More
+                      </>
+                    )}
+                  </button>
                 )}
               </CardContent>
             </Card>
+
+            {/* Attachments Card */}
+            {ticket.attachments && ticket.attachments.length > 0 && (
+              <AttachmentsCard
+                ticketAttachments={ticket.attachments}
+                onDownload={handleDownload}
+              />
+            )}
+
+            {/* Timeline Card */}
+            <TicketTimeline ticket={ticket} />
+
+            {/* Action Buttons Card */}
+            {(canEdit || canResolve || canReopen || canCancel) && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-semibold" style={{ color: THEME.colors.primary }}>
+                    Actions
+                  </h3>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* Submit Draft Button */}
+                    {ticket.status === ('draft' as any) && (
+                      <Button
+                        variant="primary"
+                        fullWidth
+                        leftIcon={<CheckCircle className="w-4 h-4" />}
+                        onClick={handleSubmit}
+                        disabled={loading}
+                      >
+                        {loading ? 'Submitting...' : 'Submit Ticket'}
+                      </Button>
+                    )}
+
+                    {canEdit && (
+                      <Button
+                        variant="outline"
+                        fullWidth
+                        leftIcon={<Edit className="w-4 h-4" />}
+                        onClick={() => router.push(`/requestor/new-request?edit=${ticket.id}`)}
+                      >
+                        Edit Request
+                      </Button>
+                    )}
+
+                    {canResolve && (
+                      <Button
+                        variant="primary"
+                        fullWidth
+                        leftIcon={<CheckCircle className="w-4 h-4" />}
+                        onClick={() => setShowResolveModal(true)}
+                      >
+                        Resolve
+                      </Button>
+                    )}
+
+                    {canReopen && (
+                      <Button
+                        variant="outline"
+                        fullWidth
+                        leftIcon={<RefreshCw className="w-4 h-4" />}
+                        onClick={() => setShowReopenModal(true)}
+                        disabled={reopenCount >= 2}
+                      >
+                        Request Reopen
+                      </Button>
+                    )}
+
+                    {canCancel && (
+                      <Button
+                        variant="outline"
+                        fullWidth
+                        leftIcon={<XCircle className="w-4 h-4" />}
+                        onClick={handleCancel}
+                        style={{ color: THEME.colors.error }}
+                      >
+                        Delete Draft
+                      </Button>
+                    )}
+                  </div>
+
+                  {!canEdit && ticket.status !== ('draft' as any) && (
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-800">
+                        This ticket cannot be edited after submission.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column: Chat Panel (1/3) */}
+          {ticket.status !== ('draft' as any) && (
+            <div className="lg:col-span-1">
+              <UnifiedChatPanel ticketId={ticket.id} />
+            </div>
           )}
+
         </div>
       </div>
 

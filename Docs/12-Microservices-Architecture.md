@@ -1,57 +1,83 @@
 # Microservices Architecture Documentation
 
-**Version:** 1.0  
-**Created:** December 2025  
+**Version:** 2.0  
+**Last Updated:** December 17, 2025  
 **Purpose:** Complete microservices architecture guide for HDMS
 
 ---
 
 ## **Architecture Overview**
 
-HDMS is built as a **microservices architecture** with Docker containerization. The system is divided into 5 main services, each handling a specific domain.
+HDMS is built as a **microservices architecture** with Docker containerization. The system is divided into **4 active services** (user-service is deprecated).
+
+> [!IMPORTANT]
+> **user-service is DEPRECATED.** All user and department management is handled by **auth-service** (external to HDMS).
 
 ---
 
 ## **Service Breakdown**
 
-### **1. User Service** (Port: 8001)
-**Responsibility:** User management, authentication, SMS integration, user import
+### **1. Auth Service** (Port: 8000) - **EXTERNAL**
+**Location:** `d:\ERP\auth-service`  
+**Responsibility:** Authentication, user management, department management, HDMS access grants
 
-**Models:**
-- User
-- Department
+**Features:**
+- Employee authentication (employee_code + password)
+- JWT token generation and refresh
+- User CRUD (employees)
+- Department CRUD
+- HDMS role assignment (requestor, moderator, assignee, admin)
 
 **APIs:**
-- `/api/v1/auth/login` - User login
-- `/api/v1/auth/refresh` - Token refresh
-- `/api/v1/users/` - User CRUD
-- `/api/v1/users/import/` - Bulk user import
+- `/api/auth/login-hdms` - HDMS-specific login
+- `/api/auth/refresh` - Token refresh
+- `/api/employees/` - Employee management
+- `/api/hdms/grant-access` - Grant HDMS access to employees
 
-**Dependencies:** None (base service)
+**Dependencies:** None (base service, external to HDMS)
 
 ---
 
-### **2. Ticket Service** (Port: 8002)
+### ~~**2. User Service** (Port: 8001) - DEPRECATED~~
+
+> [!CAUTION]
+> **DO NOT USE user-service.** It has been deprecated. All user and department management is handled by auth-service.
+
+---
+
+### **3. Ticket Service** (Port: 8002)
+**Location:** `d:\ERP\HDMS\services\ticket-service`  
 **Responsibility:** Ticket management, sub-tickets, approvals, SLA
 
 **Models:**
 - Ticket (with FSM)
 - SubTicket
 - Approval
-- SLATemplate
+- AuditLog
 
 **APIs:**
-- `/api/v1/tickets/` - Ticket CRUD
-- `/api/v1/tickets/{id}/status` - Status transitions
-- `/api/v1/tickets/{id}/sub-tickets/` - Sub-ticket management
-- `/api/v1/approvals/` - Approval workflow
+- `/api/tickets/` - Ticket CRUD
+- `/api/tickets/{id}/status` - Status transitions
+- `/api/tickets/{id}/assign` - Assign ticket
+- `/api/tickets/{id}/reject` - Reject ticket
+- `/api/tickets/{id}/postpone` - Postpone ticket
+- `/api/tickets/{id}/acknowledge` - Acknowledge assignment
+- `/api/tickets/{id}/progress` - Update progress
+- `/api/tickets/{id}/sla` - Update SLA/due date
+- `/api/tickets/{id}/history` - Audit log
 
 **Dependencies:**
-- User Service (validate users, get user details)
+- Auth Service (validate users, get user details)
+
+**Database Connection:** Via PgBouncer (6432)
+
+> [!WARNING]
+> **DO NOT** store file attachments in ticket-service. All files MUST be uploaded through file-service.
 
 ---
 
-### **3. Communication Service** (Port: 8003, WebSocket: 8004)
+### **4. Communication Service** (Port: 8003, WebSocket: 8004)
+**Location:** `d:\ERP\HDMS\services\communication-service`  
 **Responsibility:** Real-time chat, notifications, WebSocket handling
 
 **Models:**
@@ -60,71 +86,89 @@ HDMS is built as a **microservices architecture** with Docker containerization. 
 - TicketParticipant
 
 **APIs:**
-- `/api/v1/chat/messages/` - Chat messages
-- `/api/v1/notifications/` - Notifications
-- `ws://gateway/ws/chat/{ticket_id}/` - WebSocket endpoint
+- `/api/chat/{ticket_id}/messages/` - Get/send chat messages
+- `/api/notifications/` - Notifications
+
+**WebSocket (PENDING IMPLEMENTATION):**
+- `ws://gateway/ws/chat/{ticket_id}/` - Real-time chat
+- `ws://gateway/ws/notifications/` - Real-time notifications
 
 **Dependencies:**
-- User Service (get user details)
-- Ticket Service (validate tickets, get ticket details)
+- Auth Service (get user details)
+- Ticket Service (validate tickets)
+
+**Database Connection:** Via PgBouncer (6432)
+
+**Current Status:**
+- ✅ HTTP-based messaging works
+- ❌ WebSocket not implemented yet
 
 ---
 
-### **4. File Service** (Port: 8005)
+### **5. File Service** (Port: 8005)
+**Location:** `d:\ERP\HDMS\services\file-service`  
 **Responsibility:** File uploads, antivirus scanning, file processing
 
 **Models:**
 - Attachment
 
 **APIs:**
-- `/api/v1/files/upload/` - File upload
-- `/api/v1/files/{file_key}/` - File details
-- `/api/v1/files/{file_key}/download/` - File download
-- `/api/v1/files/{file_key}/status/` - Scan/processing status
+- `/api/files/upload/` - File upload
+- `/api/files/{file_key}/` - File details
+- `/api/files/{file_key}/download/` - File download
+- `/api/files/{file_key}/status/` - Scan/processing status
 
 **Dependencies:**
-- User Service (validate users)
-- Ticket Service (validate tickets)
+- Auth Service (validate users)
+- Ticket Service (validate tickets, optional)
 
 **Background Tasks:**
-- Antivirus scanning (Celery)
-- Image conversion to WebP (Celery)
-- Video transcoding to MP4 (Celery)
+- Antivirus scanning (Celery) - future
+- Image conversion to WebP (Celery) - future
+- Video transcoding to MP4 (Celery) - future
+
+> [!IMPORTANT]
+> **ALL HDMS file attachments** (tickets, chat) MUST be processed and stored through file-service.
 
 ---
 
-### **5. Frontend Service** (Port: 3000)
+### **6. Frontend Service** (Port: 3000)
+**Location:** `d:\ERP\HDMS\services\frontend-service`  
 **Responsibility:** Next.js web application
 
 **Configuration:**
-- Calls API Gateway (not individual services)
-- WebSocket connects through gateway
-- Environment variables for gateway URLs
+- Calls backend services directly (local development)
+- Calls API Gateway in production
+- WebSocket connects through gateway (when implemented)
+
+**Tech Stack:**
+- Next.js 15
+- TypeScript
+- Tailwind CSS
 
 ---
 
 ## **Infrastructure Services**
 
 ### **PostgreSQL** (Port: 5432)
-- Shared database for all services
-- Single database: `hdms_db`
-- Each service uses different table names (no conflicts)
+- Shared database for HDMS services
+- Database: `hdms_db`
+- Each service uses different table prefixes
+
+### **PgBouncer** (Port: 6432)
+- Connection pooling for PostgreSQL
+- Used by: ticket-service, communication-service
+- Pool mode: transaction
 
 ### **Redis** (Port: 6379)
-- Database 0: User Service cache
-- Database 1: Communication Service channel layer
+- Database 0: Caching
+- Database 1: Communication Service channel layer (Django Channels)
 - Database 2: Celery broker (File Service)
 
-### **Nginx API Gateway** (Port: 80)
+### **Nginx API Gateway** (Port: 80) - Production Only
 - Routes all API requests to appropriate services
 - Handles WebSocket upgrades
 - CORS configuration
-- Rate limiting (future)
-
-### **Celery Worker**
-- Background tasks for File Service
-- Antivirus scanning
-- File processing
 
 ---
 
@@ -132,182 +176,150 @@ HDMS is built as a **microservices architecture** with Docker containerization. 
 
 ### **Synchronous Communication (REST)**
 - Services communicate via HTTP REST APIs
-- Service URLs configured via environment variables
-- Docker service names used for internal communication
-- Example: `http://user-service:8001/api/v1/users/{id}/`
+- Auth-service provides user/department data
+- JWT tokens passed in Authorization header
 
-### **Asynchronous Communication**
-- Redis pub/sub for real-time events
-- Celery tasks for background processing
+### **Service Endpoints (Development)**
+```
+Auth Service:    http://localhost:8000
+Ticket Service:  http://localhost:8002
+Comm Service:    http://localhost:8003
+File Service:    http://localhost:8005
+Frontend:        http://localhost:3000
+```
 
-### **Frontend Communication**
-- Frontend ONLY calls API Gateway
-- Never calls individual services directly
-- API Gateway routes to appropriate service
+### **Frontend API Calls**
+- Frontend calls backend services via axios client
+- Base URLs configured in environment variables
+- Mock data fallback available for development
 
 ---
 
 ## **Database Strategy**
 
 ### **Current: Shared Database**
-- All services use same PostgreSQL database
+- All HDMS services use same PostgreSQL database
 - Different table names per service
 - UUID-based references (not ForeignKeys across services)
-- Example: `ticket_id` (UUID) instead of `ForeignKey('tickets.Ticket')`
 
-### **Future: Database Per Service**
-- Can migrate to separate databases later
-- Requires API calls instead of direct DB queries
-- Better isolation and scalability
+### **Table Ownership**
+| Service | Tables |
+|---------|--------|
+| ticket-service | tickets, approvals, audit_logs |
+| communication-service | chat_messages, notifications, ticket_participants |
+| file-service | attachments |
 
----
-
-## **Docker Setup**
-
-### **Development**
-```bash
-docker-compose up
-```
-
-### **Production**
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### **Service URLs (Internal)**
-- User Service: `http://user-service:8001`
-- Ticket Service: `http://ticket-service:8002`
-- Communication Service: `http://communication-service:8003`
-- File Service: `http://file-service:8005`
-- Frontend Service: `http://frontend-service:3000`
-
-### **External Access (via Gateway)**
-- API: `http://localhost/api/v1/`
-- WebSocket: `ws://localhost/ws/`
-- Frontend: `http://localhost/`
+### **Cross-Service References**
+- Use UUID fields, not ForeignKeys
+- Example: `requestor_id` (UUID) references auth-service user
+- Example: `ticket_id` (UUID) in chat_messages references ticket-service
 
 ---
 
-## **Inter-Service Communication Pattern**
+## **Development Setup**
 
-### **Example: Ticket Service calls User Service**
+### **Start Services**
 
-```python
-from core.clients.user_client import UserClient
+```bash
+# 1. Start auth-service (external)
+cd d:\ERP\auth-service\src
+python manage.py runserver 8000
 
-user_client = UserClient()
-user_data = user_client.get_user(user_id, token)
+# 2. Start infrastructure
+cd d:\ERP\HDMS
+docker-compose up -d postgres pgbouncer redis
+
+# 3. Start backend services
+docker-compose up -d ticket-service communication-service file-service
+
+# 4. Start frontend
+cd d:\ERP\HDMS\services\frontend-service
+npm run dev
 ```
 
-### **Service Client Base Class**
-Located in `services/shared/core/clients.py`
-- Handles HTTP requests
-- JWT token passing
-- Error handling
-- Timeout configuration
+### **Run Migrations**
+```bash
+# Ticket Service
+docker-compose exec ticket-service python manage.py migrate
+
+# Communication Service
+docker-compose exec communication-service python manage.py migrate
+
+# File Service
+docker-compose exec file-service python manage.py migrate
+```
 
 ---
 
 ## **Environment Variables**
 
-Each service has `.env.example` with:
-- Database connection
-- Service URLs
-- JWT settings
-- Service-specific configs
+See [environment-variables.md](environment-variables.md) for complete list.
 
----
-
-## **Migration from Monolith**
-
-### **Strategy:**
-1. **Phase 1:** Shared database, UUID references
-2. **Phase 2:** Separate databases, API calls only
-3. **Phase 3:** Service-specific optimizations
-
-### **Key Changes:**
-- ForeignKeys → UUID fields
-- Direct DB queries → API calls
-- Shared models → Service-specific models
-- Single app → Multiple services
-
----
-
-## **Deployment**
-
-### **Docker Compose**
-- All services in one `docker-compose.yml`
-- Easy local development
-- Simple production deployment
-
-### **Scaling**
-- Each service can scale independently
-- Example: `docker-compose up --scale ticket-service=3`
-- Load balancer routes to multiple instances
-
----
-
-## **Monitoring & Logging**
-
-### **Current:**
-- Docker logs: `docker-compose logs [service-name]`
-- Service-specific logging
-
-### **Future:**
-- Centralized logging (ELK stack)
-- Metrics (Prometheus + Grafana)
-- Distributed tracing (OpenTelemetry)
-
----
-
-## **Security**
-
-### **Service-to-Service:**
-- JWT tokens passed in headers
-- Internal network isolation (Docker networks)
-- No public exposure of internal services
-
-### **External Access:**
-- Only API Gateway exposed
-- JWT validation at gateway (future)
-- Rate limiting at gateway (future)
+Key variables:
+- `DATABASE_URL` - PostgreSQL connection
+- `PGBOUNCER_URL` - PgBouncer connection
+- `REDIS_URL` - Redis connection
+- `AUTH_SERVICE_URL` - Auth service base URL
+- `JWT_SECRET_KEY` - JWT secret (must match auth-service)
 
 ---
 
 ## **File Structure**
 
 ```
-services/
-├── user-service/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── .env.example
+d:\ERP\
+├── auth-service/           # External auth service
 │   └── src/
-│       ├── manage.py
-│       ├── core/
-│       └── apps/
-├── ticket-service/
-├── communication-service/
-├── file-service/
-├── frontend-service/
-└── shared/
-    └── core/
-        ├── models.py (BaseModel)
-        └── clients.py (ServiceClient)
+│       ├── authentication/ # JWT, login
+│       ├── employees/      # User management
+│       └── permissions/    # HDMS access grants
+│
+└── HDMS/
+    ├── services/
+    │   ├── ticket-service/
+    │   │   └── src/
+    │   │       └── apps/
+    │   │           ├── tickets/    # Ticket CRUD, FSM
+    │   │           ├── approvals/  # Approval workflow
+    │   │           └── audit/      # Audit logging
+    │   │
+    │   ├── communication-service/
+    │   │   └── src/
+    │   │       └── apps/
+    │   │           ├── chat/          # Chat messages
+    │   │           └── notifications/ # Notifications
+    │   │
+    │   ├── file-service/
+    │   │   └── src/
+    │   │       └── apps/
+    │   │           └── files/     # Attachments
+    │   │
+    │   ├── frontend-service/
+    │   │   └── src/
+    │   │       ├── app/           # Next.js pages
+    │   │       ├── components/    # React components
+    │   │       └── services/api/  # API clients
+    │   │
+    │   └── shared/               # Shared code
+    │       └── core/
+    │           ├── models.py     # BaseModel
+    │           └── clients.py    # HTTP clients
+    │
+    │   ~~├── user-service/~~     # DEPRECATED
+    │
+    └── Docs/                     # Documentation
 ```
 
 ---
 
-## **Next Steps**
+## **Key Architecture Rules**
 
-1. ✅ All services created
-2. ⏳ Complete inter-service clients
-3. ⏳ Update frontend to use API Gateway
-4. ⏳ Database migration scripts
-5. ⏳ Testing and deployment
+1. **No user-service** - Use auth-service for all user/department data
+2. **All files through file-service** - Never store attachments elsewhere
+3. **UUID references** - No ForeignKeys across services
+4. **PgBouncer for pooling** - ticket-service and communication-service use PgBouncer
+5. **Auth via auth-service** - All authentication flows through external auth-service
 
 ---
 
-**Last Updated:** December 2025
-
-
+**Last Updated:** December 17, 2025
