@@ -8,14 +8,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django_fsm import FSMField, transition
 from django.utils import timezone
 
-# Add shared directory to Python path (needed before model imports)
-docker_shared_path = Path('/shared/core')
-local_shared_path = Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent / 'shared' / 'core'
-shared_path = docker_shared_path if docker_shared_path.exists() else local_shared_path
-if str(shared_path) not in sys.path:
-    sys.path.insert(0, str(shared_path))
-
-from models import BaseModel
+from hdms_core.models import BaseModel
 
 
 class TicketStatus(models.TextChoices):

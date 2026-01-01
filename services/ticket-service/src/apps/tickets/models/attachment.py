@@ -1,6 +1,6 @@
 from django.db import models
 from .ticket import Ticket
-from models import BaseModel
+from hdms_core.models import BaseModel
 
 class Attachment(BaseModel):
     """

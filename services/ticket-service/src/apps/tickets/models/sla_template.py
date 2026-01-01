@@ -14,7 +14,7 @@ from django.db import models
 
 # Import BaseModel from shared
 try:
-    from models import BaseModel
+    from hdms_core.models import BaseModel
 except ImportError:
     # Fallback - create minimal BaseModel
     import uuid

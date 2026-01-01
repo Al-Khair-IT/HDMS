@@ -1,16 +1,6 @@
 """
 User model for User Service.
 """
-import sys
-import os
-from pathlib import Path
-
-# Add shared directory to path for imports
-project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-shared_path = project_root / 'shared' / 'core'
-if str(shared_path) not in sys.path:
-    sys.path.insert(0, str(shared_path))
-
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -18,7 +8,7 @@ from django.utils import timezone
 
 # Import shared BaseModel components
 try:
-    from models import SoftDeleteManager
+    from hdms_core.models import SoftDeleteManager
 except ImportError:
     # Fallback if import fails
     from django.db import models as django_models

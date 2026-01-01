@@ -3,7 +3,7 @@ Business logic services for User app.
 """
 from typing import Optional
 from django.contrib.auth import get_user_model
-from core.clients.user_client import UserClient
+from hdms_core.clients.user_client import UserClient
 
 User = get_user_model()
 

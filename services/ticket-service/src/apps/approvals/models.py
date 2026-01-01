@@ -1,33 +1,9 @@
 """
 Approval model for Ticket Service.
 """
-import sys
-from pathlib import Path
-
-# Add shared directory to path
-project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-shared_path = project_root / 'shared' / 'core'
-if str(shared_path) not in sys.path:
-    sys.path.insert(0, str(shared_path))
-
 from django.db import models
 from django.utils import timezone
-
-# Import BaseModel from shared
-try:
-    from models import BaseModel
-except ImportError:
-    # Fallback - create minimal BaseModel
-    import uuid
-    from django.db import models as django_models
-    class BaseModel(django_models.Model):
-        id = django_models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-        is_deleted = django_models.BooleanField(default=False, db_index=True)
-        deleted_at = django_models.DateTimeField(null=True, blank=True)
-        created_at = django_models.DateTimeField(auto_now_add=True)
-        updated_at = django_models.DateTimeField(auto_now=True)
-        class Meta:
-            abstract = True
+from hdms_core.models import BaseModel
 
 
 class ApprovalStatus(models.TextChoices):

@@ -4,7 +4,7 @@ Business logic services for Ticket operations.
 from typing import Optional
 from django.db import transaction as db_transaction
 from ..models.ticket import Ticket, TicketStatus
-from core.clients.user_client import UserClient
+from hdms_core.clients.user_client import UserClient
 
 
 class TicketService:

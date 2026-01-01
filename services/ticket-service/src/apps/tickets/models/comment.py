@@ -3,7 +3,7 @@ Comment model for Ticket Service.
 """
 from django.db import models
 from .ticket import Ticket
-from core.models import BaseModel
+from hdms_core.models import BaseModel
 
 class Comment(BaseModel):
     """

@@ -18,43 +18,11 @@ from apps.tickets.models.ticket import Ticket
 from apps.tickets.models.sub_ticket import SubTicket
 from apps.tickets.models.attachment import Attachment
 from apps.audit.models import AuditLog, ActionType, AuditCategory
-from core.clients.user_client import UserClient
+from hdms_core.clients.user_client import UserClient
 
-class JWTAuth(HttpBearer):
-    def authenticate(self, request, token):
-        try:
-            auth = JWTAuthentication()
-            validated_token = auth.get_validated_token(token)
-            
-            # JIT Sync: Ensure user exists locally
-            user_id = validated_token.get('user_id')
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            
-            try:
-                user = User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                # Provision user from token
-                payload = validated_token
-                full_name = payload.get('full_name', '')
-                names = full_name.split(' ')
-                user = User.objects.create(
-                    id=user_id,
-                    employee_code=payload.get('employee_code'),
-                    first_name=names[0] if names else '',
-                    last_name=' '.join(names[1:]) if len(names) > 1 else '',
-                    email=payload.get('email'),
-                    role=payload.get('role', 'requestor'),
-                    is_active=payload.get('is_active', True)
-                )
-                print(f"✅ JIT synced user in Ticket API: {user.employee_code}")
-                
-            return user
-        except Exception as e:
-            print(f"DEBUG Ticket API: Auth failed: {str(e)}")
-            return None
+from hdms_core.authentication import RemoteJWTAuthentication
 
-router = Router(tags=["tickets"], auth=JWTAuth())
+router = Router(tags=["tickets"], auth=RemoteJWTAuthentication())
 
 
 @router.post("/", response=TicketOut)

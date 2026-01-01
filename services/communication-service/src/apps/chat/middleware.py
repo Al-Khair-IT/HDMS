@@ -88,28 +88,51 @@ class JWTAuthMiddleware(BaseMiddleware):
             first_name = names[0] if names else ''
             last_name = ' '.join(names[1:]) if len(names) > 1 else ''
 
-            # Get or create user by ID (UUID)
-            user, created = User.objects.get_or_create(
-                id=user_id,
-                defaults={
-                    'employee_code': employee_code,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'email': email,
-                    'role': payload.get('role', 'requestor'),
-                    'is_active': payload.get('is_active', True),
-                }
-            )
+            # JIT Sync: Try with original email, then mangled if duplicate
+            emails_to_try = [email]
+            if email:
+                # Fallback email: {uuid}_{original_email}
+                emails_to_try.append(f"{user_id}_{email}")
             
-            if not created:
-                # Optional: Update existing user data if it changed
-                user.employee_code = employee_code
-                user.first_name = first_name
-                user.last_name = last_name
-                if email: user.email = email
-                user.save()
-                
-            return user
+            last_error = None
+            
+            for try_email in emails_to_try:
+                try:
+                    # Get or create user by ID (UUID)
+                    user, created = User.objects.get_or_create(
+                        id=user_id,
+                        defaults={
+                            'employee_code': employee_code,
+                            'first_name': first_name,
+                            'last_name': last_name,
+                            'email': try_email,
+                            'role': payload.get('role', 'requestor'),
+                            'is_active': payload.get('is_active', True),
+                        }
+                    )
+                    
+                    if not created:
+                        # Update existing user data
+                        user.employee_code = employee_code
+                        user.first_name = first_name
+                        user.last_name = last_name
+                        if try_email: user.email = try_email
+                        user.save()
+                    
+                    return user
+                    
+                except Exception as e:
+                    last_error = e
+                    # Check for integrity error (duplicate email)
+                    if "unique constraint" in str(e).lower() and "email" in str(e).lower():
+                        print(f"⚠️ JIT Sync Conflict: Email '{try_email}' already exists. Retrying with unique email.")
+                        continue # Try next email format
+                    else:
+                        raise e # Other error, re-raise
+            
+            # If all attempts fail
+            print(f"❌ JIT Sync failed handled attempts: {str(last_error)}")
+            return None
         except Exception as e:
             print(f"❌ Error in JIT user sync: {str(e)}")
             import traceback

@@ -1,3 +1,4 @@
+
 # Ticket Service Dockerfile
 FROM python:3.12-slim
 
@@ -19,6 +20,9 @@ COPY src/ .
 
 # Expose port
 EXPOSE 8002
+
+# Add shared directory to Python path
+ENV PYTHONPATH="${PYTHONPATH}:/shared"
 
 # Run migrations and start server
 CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"]

@@ -27,8 +27,12 @@ class AttachmentOut(Schema):
 
 class FileUploadResponse(Schema):
     """File upload response schema."""
+    id: str
     file_key: str
     message: str
     scan_status: str
+    filename: str
+    size: int
+    content_type: str
 
 

@@ -28,8 +28,8 @@ class ChatService:
     def send_message(ticket_id: str, sender_id: str, message: str, mentions: List[str] = None) -> ChatMessage:
         """Send a chat message."""
         # Lazy imports to avoid Django settings access at module level
-        from core.clients.ticket_client import TicketClient
-        from core.clients.user_client import UserClient
+        from hdms_core.clients.ticket_client import TicketClient
+        from hdms_core.clients.user_client import UserClient
         
         # Validate ticket exists
         if not TicketClient.validate_ticket(ticket_id):

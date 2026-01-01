@@ -72,9 +72,13 @@ class UploadService:
         scan_file_task.delay(str(attachment.id))
         
         return {
+            'id': str(attachment.id),
             'file_key': str(file_key),
             'message': 'File uploaded successfully. Scan in progress.',
-            'scan_status': 'pending'
+            'scan_status': 'pending',
+            'filename': attachment.original_filename,
+            'size': attachment.file_size,
+            'content_type': attachment.mime_type
         }
 
 

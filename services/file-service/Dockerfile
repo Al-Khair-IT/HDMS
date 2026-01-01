@@ -25,6 +25,9 @@ RUN mkdir -p /app/media/uploads /app/media/temp
 # Expose port
 EXPOSE 8005
 
+# Add shared directory to Python path
+ENV PYTHONPATH="${PYTHONPATH}:/shared"
+
 # Run migrations and start server
 CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8005"]
 
