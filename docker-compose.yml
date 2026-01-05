@@ -1,101 +1,14 @@
 services:
-  # PostgreSQL Database (Shared)
-  postgres:
-    image: postgres:16
-    container_name: hdms_postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hdms_db}
-      POSTGRES_USER: ${POSTGRES_USER:-hdms_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hdms_pwd}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./config/postgres/init-md5-password.sh:/docker-entrypoint-initdb.d/init-md5-password.sh:ro
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
-    networks:
-      - hdms_network
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hdms_user} -d ${POSTGRES_DB:-hdms_db}" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-  # PgBouncer Connection Pooler
-  pgbouncer:
-    image: pgbouncer/pgbouncer:latest
-    container_name: hdms_pgbouncer
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-hdms_db}
-      - POSTGRES_USER=${POSTGRES_USER:-hdms_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hdms_pwd}
-      - DB_HOST=postgres
-      - PGBOUNCER_POOL_SIZE=${PGBOUNCER_POOL_SIZE:-25}
-    volumes:
-      - ./config/pgbouncer/entrypoint.sh:/entrypoint.sh:ro
-    entrypoint: [ "/entrypoint.sh" ]
-    ports:
-      - "6432:6432"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "nc -z localhost 6432 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - hdms_network
-
-  # Redis (Shared)
-  redis:
-    image: redis:7
-    container_name: hdms_redis
-    command: >
-      sh -c " if [ -n \"$$REDIS_PASSWORD\" ]; then
-        redis-server --requirepass $$REDIS_PASSWORD --appendonly yes
-      else
-        redis-server --appendonly yes
-      fi "
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    networks:
-      - hdms_network
-    healthcheck:
-      test: >
-        sh -c " if [ -n \"$$REDIS_PASSWORD\" ]; then
-          redis-cli -a \"$$REDIS_PASSWORD\" ping
-        else
-          redis-cli ping
-        fi "
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
-
   # Ticket Service
   ticket-service:
     build:
       context: ./services/ticket-service
       dockerfile: Dockerfile
     container_name: hdms-ticket-service
+    env_file:
+      - ../.env # Load root .env file
     environment:
       - DEBUG=True
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
-      - REDIS_URL=redis://redis:6379/0
-      - USER_SERVICE_URL=http://host.docker.internal:8000
-      - TICKET_SERVICE_URL=http://ticket-service:8002
-      - COMMUNICATION_SERVICE_URL=http://communication-service:8003
-      - FILE_SERVICE_URL=http://file-service:8005
-      - DB_HOST=pgbouncer
-      - DB_PORT=6432
-      - SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
-      - JWT_SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
     volumes:
       - ./services/ticket-service/src:/app
       - ./services/shared:/shared
@@ -107,14 +20,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 45s
-    depends_on:
-      pgbouncer:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
-      - backend-network
-      - hdms_network
+      - erp_network
     restart: unless-stopped
 
   # Communication Service
@@ -123,19 +30,10 @@ services:
       context: ./services/communication-service
       dockerfile: Dockerfile
     container_name: hdms-communication-service
+    env_file:
+      - ../.env
     environment:
       - DEBUG=True
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
-      - REDIS_URL=redis://redis:6379/0
-      - CHANNEL_LAYER_REDIS=redis://redis:6379/1
-      - USER_SERVICE_URL=http://host.docker.internal:8000
-      - TICKET_SERVICE_URL=http://ticket-service:8002
-      - COMMUNICATION_SERVICE_URL=http://communication-service:8003
-      - FILE_SERVICE_URL=http://file-service:8005
-      - DB_HOST=pgbouncer
-      - DB_PORT=6432
-      - SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
-      - JWT_SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
     volumes:
       - ./services/communication-service/src:/app
       - ./services/shared:/shared
@@ -148,38 +46,26 @@ services:
       retries: 5
       start_period: 60s
     depends_on:
-      pgbouncer:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       ticket-service:
         condition: service_healthy
     networks:
-      - backend-network
-      - hdms_network
+      - erp_network
     restart: unless-stopped
+
   # File Service
   file-service:
     build:
       context: ./services/file-service
       dockerfile: Dockerfile
     container_name: hdms-file-service
+    env_file:
+      - ../.env
     environment:
       - DEBUG=True
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
-      - REDIS_URL=redis://redis:6379/0
-      - USER_SERVICE_URL=http://host.docker.internal:8000
-      - TICKET_SERVICE_URL=http://ticket-service:8002
-      - COMMUNICATION_SERVICE_URL=http://communication-service:8003
-      - FILE_SERVICE_URL=http://file-service:8005
-      - MEDIA_ROOT=/app/media
-      - DB_HOST=pgbouncer
-      - DB_PORT=6432
-      - SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
-      - JWT_SECRET_KEY=dev-secret-key-change-this-in-production-pk-erp-2025
     volumes:
       - ./services/file-service/src:/app
       - ./services/shared:/shared
+      - file_storage:/app/media
     ports:
       - "8005:8005"
     healthcheck:
@@ -189,68 +75,10 @@ services:
       retries: 5
       start_period: 45s
     depends_on:
-      pgbouncer:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       ticket-service:
-        condition: service_healthy # Changed from service_started
-    networks:
-      - backend-network
-      - hdms_network
-    restart: unless-stopped
-  # Celery Worker (for File Service)
-  celery-worker:
-    build:
-      context: ./services/file-service
-      dockerfile: Dockerfile
-    container_name: hdms-celery-worker
-    command: celery -A core worker -l info
-    environment:
-      - DEBUG=True
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/2
-      - FILE_SERVICE_URL=http://file-service:8005
-      - MEDIA_ROOT=/app/media
-    volumes:
-      - ./services/file-service/src:/app
-      - file_storage:/app/media
-    depends_on:
-      redis:
-        condition: service_healthy
-      file-service:
         condition: service_healthy
     networks:
-      - backend-network
-      - hdms_network
-    restart: unless-stopped
-
-  # Celery Beat (for Scheduled Tasks)
-  celery-beat:
-    build:
-      context: ./services/file-service
-      dockerfile: Dockerfile
-    container_name: hdms-celery-beat
-    command: celery -A core beat -l info
-    environment:
-      - DEBUG=True
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-hdms_user}:${POSTGRES_PASSWORD:-hdms_pwd}@pgbouncer:6432/${POSTGRES_DB:-hdms_db}}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/2
-      - FILE_SERVICE_URL=http://file-service:8005
-      - MEDIA_ROOT=/app/media
-    volumes:
-      - ./services/file-service/src:/app
-      - file_storage:/app/media
-    depends_on:
-      redis:
-        condition: service_healthy
-      file-service:
-        condition: service_healthy
-    networks:
-      - backend-network
-      - hdms_network
+      - erp_network
     restart: unless-stopped
 
   # Frontend Service
@@ -273,8 +101,7 @@ services:
       file-service:
         condition: service_healthy
     networks:
-      - frontend-network
-      - backend-network
+      - erp_network
     restart: unless-stopped
 
   # Nginx API Gateway
@@ -295,22 +122,14 @@ services:
       file-service:
         condition: service_healthy
     networks:
-      - frontend-network
-      - backend-network
+      - erp_network
     restart: unless-stopped
 
 networks:
-  frontend-network:
-    driver: bridge
-  backend-network:
-    driver: bridge
-  hdms_network:
-    driver: bridge
+  erp_network:
+    external: true
 
 volumes:
-  postgres_data:
-  pgbouncer_data:
-  redis_data:
   file_storage:
 
 

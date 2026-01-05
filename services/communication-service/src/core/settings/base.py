@@ -195,23 +195,27 @@ REST_FRAMEWORK = {
 }
 
 # Channels Configuration (Redis database 1)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
-if REDIS_PASSWORD:
+# Channels Configuration
+# If CHANNEL_LAYER_REDIS or REDIS_URL provides a redis url, use it.
+# Otherwise, fallback to InMemoryChannelLayer.
+CHANNEL_LAYER_REDIS = config('CHANNEL_LAYER_REDIS', default='')
+REDIS_URL = config('REDIS_URL', default='')
+
+if CHANNEL_LAYER_REDIS or REDIS_URL:
+    redis_host = CHANNEL_LAYER_REDIS if CHANNEL_LAYER_REDIS else REDIS_URL
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                'hosts': [('redis', 6379, {'password': REDIS_PASSWORD})],
+                'hosts': [redis_host],
             },
         },
     }
 else:
+    # Use InMemoryChannelLayer for development/testing when Redis is not available
     CHANNEL_LAYERS = {
         'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [('redis', 6379)],
-            },
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
         },
     }
 
