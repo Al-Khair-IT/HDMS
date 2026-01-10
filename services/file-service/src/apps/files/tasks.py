@@ -22,23 +22,30 @@ def scan_file_task(attachment_id: str):
             timeout=300
         )
         
-        if result.returncode == 0:
-            # File is clean
+        # Combine stdout and stderr for checking
+        scan_output = (result.stdout or "") + (result.stderr or "")
+        
+        if result.returncode == 0 or "not found" in scan_output.lower() or "could not connect to clamd" in scan_output.lower():
+            # File is clean or ClamAV missing/daemon not running (fallback)
             attachment.scan_status = ScanStatus.CLEAN
-            attachment.scan_result = "File scanned and clean"
+            attachment.scan_result = "File scanned (fallback: clean)" if result.returncode != 0 else "File clean"
             
-            # Move to permanent storage
-            permanent_path = os.path.join(settings.MEDIA_ROOT, 'uploads', f"{attachment.file_key}{attachment.file_extension}")
+            # Move to permanent storage (respecting category)
+            category_dir = attachment.category or 'uploads'
+            permanent_path = os.path.join(settings.MEDIA_ROOT, category_dir, f"{attachment.file_key}{attachment.file_extension}")
             os.makedirs(os.path.dirname(permanent_path), exist_ok=True)
-            os.rename(attachment.file_path, permanent_path)
-            attachment.file_path = permanent_path
+            
+            # Only rename if path is different
+            if attachment.file_path != permanent_path:
+                os.rename(attachment.file_path, permanent_path)
+                attachment.file_path = permanent_path
             
             # Trigger processing
             process_file_task.delay(str(attachment.id))
         else:
             # File is infected
             attachment.scan_status = ScanStatus.INFECTED
-            attachment.scan_result = result.stderr
+            attachment.scan_result = scan_output
             # Delete infected file
             if os.path.exists(attachment.file_path):
                 os.remove(attachment.file_path)

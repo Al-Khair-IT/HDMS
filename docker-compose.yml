@@ -65,7 +65,7 @@ services:
     volumes:
       - ./services/file-service/src:/app
       - ./services/shared:/shared
-      - file_storage:/app/media
+      - ./services/file-service/src/media:/app/media
     ports:
       - "8005:8005"
     healthcheck:
@@ -77,6 +77,25 @@ services:
     depends_on:
       ticket-service:
         condition: service_healthy
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # Celery Worker for File Scanning
+  celery-worker-files:
+    build:
+      context: ./services/file-service
+      dockerfile: Dockerfile
+    container_name: hdms-file-worker
+    command: celery -A core worker --loglevel=info
+    env_file:
+      - ../.env
+    volumes:
+      - ./services/file-service/src:/app
+      - ./services/shared:/shared
+      - ./services/file-service/src/media:/app/media
+    depends_on:
+      - file-service
     networks:
       - erp_network
     restart: unless-stopped

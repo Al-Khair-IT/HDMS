@@ -29,6 +29,7 @@ class FileUploadResponse(Schema):
     """File upload response schema."""
     id: str
     file_key: str
+    url: str  # Added for frontend convenience
     message: str
     scan_status: str
     filename: str

@@ -1,3 +1,4 @@
+import os
 from ninja import Router
 from ninja.errors import HttpError
 from typing import List, Optional
@@ -9,11 +10,11 @@ from hdms_core.clients.user_client import UserClient
 from hdms_core.clients.ticket_client import TicketClient
 from hdms_core.authentication import RemoteJWTAuthentication
 
-router = Router(tags=["files"], auth=RemoteJWTAuthentication())
+router = Router(tags=["files"])
 
 
-@router.post("/upload", response=FileUploadResponse)
-def upload_file(request, ticket_id: Optional[str] = None, chat_message_id: Optional[str] = None):
+@router.post("/upload", response=FileUploadResponse, auth=RemoteJWTAuthentication())
+def upload_file(request, ticket_id: Optional[str] = None, chat_message_id: Optional[str] = None, category: Optional[str] = None, purpose: Optional[str] = None, uploaded_by_id: Optional[str] = None):
     """Upload a file."""
     # Get file from request.FILES
     if 'file' not in request.FILES:
@@ -21,18 +22,21 @@ def upload_file(request, ticket_id: Optional[str] = None, chat_message_id: Optio
     
     file = request.FILES['file']
     
-    # Validate ticket or chat_message exists
+    # Handle category vs purpose alias
+    final_category = category or purpose or 'general'
+    
+    # Validate context
     if ticket_id:
         ticket_client = TicketClient()
         if not ticket_client.validate_ticket(ticket_id):
             raise HttpError(404, "Ticket not found")
     
-    # Validate user exists
-    user_client = UserClient()
-    # Get user_id from JWT token (simplified)
-    user_id = request.user.id if hasattr(request, 'user') else None
+    # Identify uploader
+    # If uploaded_by_id is provided (e.g. from proxy), use it. 
+    # Otherwise fallback to authenticated user.
+    final_uploader_id = uploaded_by_id or (request.user.id if hasattr(request, 'user') else None)
     
-    if not user_id:
+    if not final_uploader_id:
         raise HttpError(401, "User not authenticated")
     
     # Upload file
@@ -41,8 +45,13 @@ def upload_file(request, ticket_id: Optional[str] = None, chat_message_id: Optio
         file=file,
         ticket_id=ticket_id,
         chat_message_id=chat_message_id,
-        uploaded_by_id=str(user_id)
+        uploaded_by_id=str(final_uploader_id),
+        category=final_category
     )
+    
+    # Construct URL for response
+    gateway_url = os.environ.get('PUBLIC_GATEWAY_URL', 'http://localhost')
+    result['url'] = f"{gateway_url}/api/v1/files/{result['file_key']}/download"
     
     return result
 

@@ -19,7 +19,7 @@ class UploadService:
         'videos': ['.mp4', '.mov', '.mkv', '.avi']
     }
     
-    def upload_file(self, file: UploadedFile, ticket_id: str = None, chat_message_id: str = None, uploaded_by_id: str = None) -> dict:
+    def upload_file(self, file: UploadedFile, ticket_id: str = None, chat_message_id: str = None, uploaded_by_id: str = None, category: str = 'general') -> dict:
         """
         Upload file to temporary storage and trigger scan.
         
@@ -46,8 +46,9 @@ class UploadService:
         # Generate unique file key
         file_key = uuid.uuid4()
         
-        # Save to temporary storage
-        temp_path = os.path.join(settings.MEDIA_ROOT, 'temp', f"{file_key}{file_ext}")
+        # Save to storage (categorized folder)
+        folder = category if category else 'general'
+        temp_path = os.path.join(settings.MEDIA_ROOT, folder, f"{file_key}{file_ext}")
         os.makedirs(os.path.dirname(temp_path), exist_ok=True)
         
         with open(temp_path, 'wb+') as destination:
@@ -57,11 +58,12 @@ class UploadService:
         # Create attachment record
         attachment = Attachment.objects.create(
             file_key=file_key,
+            category=category,
             original_filename=file.name,
             file_size=file.size,
             mime_type=file.content_type,
             file_extension=file_ext,
-            file_path=temp_path,  # Temporary path
+            file_path=temp_path,
             scan_status=ScanStatus.PENDING,
             ticket_id=ticket_id,
             chat_message_id=chat_message_id,

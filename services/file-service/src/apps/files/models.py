@@ -40,6 +40,7 @@ class Attachment(BaseModel):
     processed_at = models.DateTimeField(null=True, blank=True)
     
     # Relationships (UUID references)
+    category = models.CharField(max_length=50, default='general', db_index=True, help_text="Collection/Folder name (e.g., resumes, tickets)")
     ticket_id = models.UUIDField(null=True, blank=True, db_index=True)
     chat_message_id = models.UUIDField(null=True, blank=True, db_index=True)
     uploaded_by_id = models.UUIDField(db_index=True)
@@ -61,9 +62,13 @@ class Attachment(BaseModel):
         return f"{self.original_filename} ({self.file_key})"
     
     def clean(self):
-        """Validate that attachment is either ticket-level or message-level."""
+        """Validate that attachment belongs to a context or category."""
         from django.core.exceptions import ValidationError
+        # If it has a non-general category, it's valid
+        if self.category != 'general':
+            return
+            
         if not self.ticket_id and not self.chat_message_id:
-            raise ValidationError("Attachment must belong to either a ticket or chat message")
+            raise ValidationError("Attachment must belong to either a ticket, chat message, or a non-general category")
         if self.ticket_id and self.chat_message_id:
             raise ValidationError("Attachment cannot belong to both ticket and chat message")
