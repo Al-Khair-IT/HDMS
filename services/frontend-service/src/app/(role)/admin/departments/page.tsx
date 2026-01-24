@@ -202,6 +202,7 @@ const DepartmentsListPage: React.FC = () => {
                       <tr className="border-b-2" style={{ borderColor: THEME.colors.background }}>
                         <th className="text-left py-3 px-4 text-xs md:text-sm font-semibold whitespace-nowrap" style={{ color: THEME.colors.primary }}>Code</th>
                         <th className="text-left py-3 px-4 text-xs md:text-sm font-semibold whitespace-nowrap" style={{ color: THEME.colors.primary }}>Name</th>
+                        <th className="text-left py-3 px-4 text-xs md:text-sm font-semibold whitespace-nowrap" style={{ color: THEME.colors.primary }}>Inst.</th>
                         <th className="text-left py-3 px-4 text-xs md:text-sm font-semibold whitespace-nowrap" style={{ color: THEME.colors.primary }}>Sector</th>
                         <th className="text-left py-3 px-4 text-xs md:text-sm font-semibold whitespace-nowrap" style={{ color: THEME.colors.primary }}>Description</th>
                         <th className="text-left py-3 px-4 text-xs md:text-sm font-semibold whitespace-nowrap" style={{ color: THEME.colors.primary }}>Actions</th>
@@ -220,6 +221,11 @@ const DepartmentsListPage: React.FC = () => {
                                 {dept.dept_name}
                               </span>
                             </div>
+                          </td>
+                          <td className="py-4 px-4 text-xs md:text-sm whitespace-nowrap">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded font-bold text-[10px] uppercase">
+                              {dept.institution_code || 'Global'}
+                            </span>
                           </td>
                           <td className="py-4 px-4 text-xs md:text-sm whitespace-nowrap">
                             <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">

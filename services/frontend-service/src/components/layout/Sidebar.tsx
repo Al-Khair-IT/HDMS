@@ -13,6 +13,8 @@ import {
   Inbox,
   LogOut,
   Building,
+  MapPin,
+  Menu,
   X
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
@@ -23,13 +25,21 @@ interface SidebarProps {
   currentPage: string;
   isOpen: boolean;
   onToggle: () => void;
+  isMobileOpen: boolean;
+  onMobileToggle: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onToggle }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  role,
+  currentPage,
+  isOpen,
+  onToggle,
+  isMobileOpen,
+  onMobileToggle
+}) => {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // We should also expose a way to toggle mobile sidebar from parent if needed, 
   // but for now local state handles the mobile drawer itself, BUT the parent Layout needs to know about mobile toggle trigger.
@@ -86,6 +96,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
           { name: 'All Requests', url: `/${role}/requests`, icon: FileText },
           { name: 'Users', url: `/${role}/users`, icon: Users },
           { name: 'Employees', url: `/${role}/employees`, icon: UserPlus },
+          { name: 'Institutions', url: `/${role}/institutions`, icon: Building },
+          { name: 'Branches', url: `/${role}/branches`, icon: MapPin },
           { name: 'Departments', url: `/${role}/departments`, icon: Building },
           { name: 'Settings', url: `/${role}/settings`, icon: Settings },
           { name: 'Notifications', url: `/${role}/notifications`, icon: Inbox },
@@ -120,20 +132,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
         }}
       >
         {/* Logo Section - Clickable */}
-        <div className={`px-4 py-8 ${isOpen ? '' : 'flex justify-center'}`}>
+        <div className={`px-4 py-8 flex items-center justify-between ${isOpen ? '' : 'flex-col gap-4'}`}>
           {isOpen ? (
-            <Logo
-              size="full"
-              showText={true}
-              showSubtitle={true}
-              onClick={onToggle}
-            />
+            <div className="flex items-center justify-between w-full">
+              <Logo
+                size="full"
+                showText={true}
+                showSubtitle={true}
+              />
+              <button
+                onClick={onToggle}
+                className="p-2 rounded-lg hover:bg-[#a3cef1] transition-colors text-[#274c77]"
+                title="Collapse Sidebar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           ) : (
-            <Logo
-              size="md"
-              showText={false}
+            <button
               onClick={onToggle}
-            />
+              className="p-3 rounded-xl hover:bg-[#6096ba] hover:text-white transition-all bg-[#e7ecef] text-[#274c77] shadow-md"
+              title="Expand Sidebar"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
           )}
         </div>
 
@@ -217,10 +239,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
       </aside>
 
       {/* Mobile Overlay */}
-      {mobileSidebarOpen && (
+      {isMobileOpen && (
         <div
           className="md:hidden fixed inset-0 z-50 bg-black/30 backdrop-blur-sm transition-opacity duration-700"
-          onClick={() => setMobileSidebarOpen(false)}
+          onClick={onMobileToggle}
         />
       )}
 
@@ -231,7 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
           bg-[#e7ecef] rounded-r-3xl border-r-[3px] border-[#1c3f67]
           shadow-[0_8px_32px_0_rgba(173,208,231,0.74)] backdrop-blur-lg
           transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           flex flex-col
         `}
       >
@@ -239,7 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
         <div className="px-4 py-8 flex items-center justify-between">
           <Logo size="full" showText={true} showSubtitle={true} />
           <button
-            onClick={() => setMobileSidebarOpen(false)}
+            onClick={onMobileToggle}
             className="p-2 rounded-lg hover:bg-[#a3cef1] transition-colors"
           >
             <X className="w-6 h-6 text-[#274c77]" />
@@ -265,7 +287,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
                     : 'bg-transparent text-[#274c77] border-[1.5px] border-[#8b8c89] shadow-lg hover:bg-[#a3cef1]'
                   }
                 `}
-                onClick={() => setMobileSidebarOpen(false)}
+                onClick={onMobileToggle}
               >
                 <Icon size={20} />
                 <span className="ml-3">{item.name}</span>
@@ -279,7 +301,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, currentPage, isOpen, onT
           <button
             onClick={() => {
               handleLogout();
-              setMobileSidebarOpen(false);
+              onMobileToggle();
             }}
             className="
               w-full

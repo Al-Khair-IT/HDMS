@@ -14,6 +14,9 @@ import userService from '../../../../services/api/userService';
 import { Ticket } from '../../../../types';
 import { User } from '../../../../types';
 import { formatDate, formatRelativeTime } from '../../../../lib/helpers';
+import { fetchInstitutions, Institution } from '../../../../services/institutionService';
+import { fetchBranches, Branch } from '../../../../services/branchService';
+import { fetchDepartments, Department } from '../../../../services/departmentService';
 import {
   Users,
   FileText,
@@ -27,7 +30,9 @@ import {
   XCircle,
   UserPlus,
   Settings,
-  Shield
+  Shield,
+  MapPin,
+  School
 } from 'lucide-react';
 
 // Generate demo data
@@ -68,6 +73,9 @@ const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'30' | '180' | '365'>('30');
@@ -78,45 +86,49 @@ const AdminDashboardPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch both resources in parallel
-        const [ticketsResult, usersResult] = await Promise.allSettled([
+        // Fetch all resources in parallel
+        const [ticketsResult, usersResult, instsResult, branchesResult, deptsResult] = await Promise.allSettled([
           ticketService.getTickets(),
-          userService.getUsers()
+          userService.getUsers(),
+          fetchInstitutions(),
+          fetchBranches(),
+          fetchDepartments()
         ]);
 
         // Process Tickets
-        let ticketsList: Ticket[] = [];
         if (ticketsResult.status === 'fulfilled') {
           const response = ticketsResult.value;
-          ticketsList = Array.isArray(response) ? response : (response?.results || []);
+          setTickets(Array.isArray(response) ? response : (response?.results || generateDemoTickets()));
         } else {
-          console.warn('Tickets API failed, using demo data:', ticketsResult.reason);
-        }
-
-        if (ticketsList.length === 0) {
-          ticketsList = generateDemoTickets();
+          setTickets(generateDemoTickets());
         }
 
         // Process Users
-        let usersList: User[] = [];
         if (usersResult.status === 'fulfilled') {
           const response = usersResult.value;
-          usersList = Array.isArray(response) ? response : (response?.results || []);
+          setUsers(Array.isArray(response) ? response : (response?.results || generateDemoUsers()));
         } else {
-          console.warn('Users API failed, using demo data:', usersResult.reason);
+          setUsers(generateDemoUsers());
         }
 
-        if (usersList.length === 0) {
-          usersList = generateDemoUsers();
+        // Process Institutions
+        if (instsResult.status === 'fulfilled') {
+          setInstitutions(instsResult.value.data || []);
         }
 
-        setTickets(ticketsList);
-        setUsers(usersList);
+        // Process Branches
+        if (branchesResult.status === 'fulfilled') {
+          setBranches(branchesResult.value.data || []);
+        }
+
+        // Process Departments
+        if (deptsResult.status === 'fulfilled') {
+          setDepartmentsList(deptsResult.value.data || []);
+        }
+
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
         setError('Failed to load dashboard data');
-        setTickets(generateDemoTickets());
-        setUsers(generateDemoUsers());
       } finally {
         setLoading(false);
       }
@@ -132,7 +144,9 @@ const AdminDashboardPage: React.FC = () => {
   const activeTickets = tickets.filter(t =>
     !['resolved', 'completed', 'closed', 'rejected'].includes(t.status)
   ).length;
-  const departments = Array.from(new Set(users.map(u => u.department).filter(Boolean))).length;
+  const totalInstitutions = institutions.length;
+  const totalBranches = branches.length;
+  const totalDepartments = departmentsList.length > 0 ? departmentsList.length : Array.from(new Set(users.map(u => u.department).filter(Boolean))).length;
   const systemUptime = '99.8%'; // Mock data
 
   // Calculate analytics data
@@ -350,52 +364,63 @@ const AdminDashboardPage: React.FC = () => {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 auto-rows-fr">
-        <div className="h-full">
-          <AnalyticsCard
-            title="Total Users"
-            value={totalUsers}
-            icon={Users}
-            color={THEME.colors.primary}
-            hoverDescription={`${activeUsers} active users`}
-          />
-        </div>
-        <div className="h-full">
-          <AnalyticsCard
-            title="Total Tickets"
-            value={totalTickets}
-            icon={FileText}
-            color={THEME.colors.medium}
-            hoverDescription="All-time ticket count"
-          />
-        </div>
-        <div className="h-full">
-          <AnalyticsCard
-            title="Active Tickets"
-            value={activeTickets}
-            icon={Activity}
-            color={THEME.colors.warning}
-            hoverDescription="Currently open tickets"
-          />
-        </div>
-        <div className="h-full">
-          <AnalyticsCard
-            title="Departments"
-            value={departments}
-            icon={Building2}
-            color={THEME.colors.light}
-            hoverDescription="Total departments"
-          />
-        </div>
-        <div className="h-full">
-          <AnalyticsCard
-            title="System Uptime"
-            value={systemUptime}
-            icon={Server}
-            color={THEME.colors.success}
-            hoverDescription="Availability percentage"
-          />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <AnalyticsCard
+          title="Total Users"
+          value={totalUsers}
+          icon={Users}
+          color={THEME.colors.primary}
+          hoverDescription={`${activeUsers} active users`}
+        />
+        <AnalyticsCard
+          title="Total Tickets"
+          value={totalTickets}
+          icon={FileText}
+          color={THEME.colors.medium}
+          hoverDescription="All-time ticket count"
+        />
+        <AnalyticsCard
+          title="Active Tickets"
+          value={activeTickets}
+          icon={Activity}
+          color={THEME.colors.warning}
+          hoverDescription="Currently open tickets"
+        />
+        <AnalyticsCard
+          title="Institutions"
+          value={totalInstitutions}
+          icon={Building2}
+          color={THEME.colors.primary}
+          hoverDescription="Global organizational entities"
+        />
+        <AnalyticsCard
+          title="Branches"
+          value={totalBranches}
+          icon={MapPin}
+          color={THEME.colors.medium}
+          hoverDescription="Physical locations/campuses"
+        />
+        <AnalyticsCard
+          title="Departments"
+          value={totalDepartments}
+          icon={Building2}
+          color={THEME.colors.info || THEME.colors.primary}
+          hoverDescription="Organizational departments"
+        />
+        <AnalyticsCard
+          title="SLA Compliance"
+          value={`${slaComplianceRate}%`}
+          icon={TrendingUp}
+          color={THEME.colors.success}
+          hoverDescription="Percentage of tickets met SLA"
+        />
+        <AnalyticsCard
+          title="System Uptime"
+          value={systemUptime}
+          icon={Server}
+          color={THEME.colors.success}
+          hoverDescription="Availability percentage"
+        />
       </div>
 
       {/* System-Wide Analytics */}

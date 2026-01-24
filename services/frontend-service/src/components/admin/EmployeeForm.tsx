@@ -49,6 +49,9 @@ const EmployeeForm: React.FC = () => {
   const [religion, setReligion] = useState('');
 
   // Dropdown data
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [filteredBranches, setFilteredBranches] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [designations, setDesignations] = useState<any[]>([]);
   const [filteredDesignations, setFilteredDesignations] = useState<any[]>([]);
@@ -63,10 +66,13 @@ const EmployeeForm: React.FC = () => {
   const [state, setState] = useState('');
 
   // Employment
+  const [institution, setInstitution] = useState('');
+  const [branch, setBranch] = useState('');
   const [department, setDepartment] = useState('');
   const [designation, setDesignation] = useState('');
   const [dateOfJoining, setDateOfJoining] = useState('');
   const [employmentType, setEmploymentType] = useState('Full-time');
+  const [shift, setShift] = useState('morning');
 
   // Bank
   const [bankName, setBankName] = useState('');
@@ -92,33 +98,45 @@ const EmployeeForm: React.FC = () => {
   /* Fetch departments & designations                                   */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
-    const fetchDepartments = async () => {
+    const fetchBaseData = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/departments');
-        const data = await res.json();
-        setDepartments(data);
+        const [instRes, branchRes, deptRes, desigRes] = await Promise.all([
+          fetch('http://localhost:8000/api/institutions'),
+          fetch('http://localhost:8000/api/branches'),
+          fetch('http://localhost:8000/api/departments'),
+          fetch('http://localhost:8000/api/designations')
+        ]);
+
+        const [insts, brs, depts, desigs] = await Promise.all([
+          instRes.json(), branchRes.json(), deptRes.json(), desigRes.json()
+        ]);
+
+        setInstitutions(insts);
+        setBranches(brs);
+        setDepartments(depts);
+        setDesignations(desigs);
       } catch (err) {
-        console.error('Failed to fetch departments:', err);
+        console.error('Failed to fetch HRMS base data:', err);
       }
     };
 
-    const fetchDesignations = async () => {
-      try {
-        const res = await fetch('http://localhost:8000/api/designations');
-        const data = await res.json();
-        setDesignations(data);
-      } catch (err) {
-        console.error('Failed to fetch designations:', err);
-      }
-    };
-
-    fetchDepartments();
-    fetchDesignations();
+    fetchBaseData();
   }, []);
 
   /* ------------------------------------------------------------------ */
   /* Filter designations when department changes                         */
   /* ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ */
+  /* Hierarchy Filtering Logic                                          */
+  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    if (institution) {
+      setFilteredBranches(branches.filter(b => b.institution_code === institution));
+    } else {
+      setFilteredBranches([]);
+    }
+  }, [institution, branches]);
+
   useEffect(() => {
     if (department) {
       const filtered = designations.filter(
@@ -220,17 +238,17 @@ const EmployeeForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setFieldErrors({});
     setGeneralError('');
-    
+
     const err = validate();
     if (err) {
       setGeneralError(err);
       return;
     }
-    
+
     setIsLoading(true);
 
     const payload = {
@@ -247,10 +265,13 @@ const EmployeeForm: React.FC = () => {
       permanentAddress,
       city,
       state,
-      department,
-      designation,
+      institutionCode: institution,
+      branchCode: branch,
+      departmentCode: department,
+      designationCode: designation,
       dateOfJoining: dateOfJoining || new Date().toISOString().slice(0, 10),
       employmentType,
+      shift,
       bankName,
       accountNumber,
       orgEmail,
@@ -285,7 +306,7 @@ const EmployeeForm: React.FC = () => {
         `✅ Employee created successfully!\n\nEmployee ID: ${data.employee_id}\nEmployee Code: ${data.employee_code}`
       );
       router.push('/admin/employees');
-      
+
     } catch (error) {
       console.error('Error:', error);
       setGeneralError('Network error. Please check your connection and try again.');
@@ -299,8 +320,8 @@ const EmployeeForm: React.FC = () => {
   /* ------------------------------------------------------------------ */
   const getFieldClass = (fieldName: string) => {
     const baseClass = "w-full px-4 py-2 border rounded-lg";
-    return fieldErrors[fieldName] 
-      ? `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500` 
+    return fieldErrors[fieldName]
+      ? `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500`
       : baseClass;
   };
 
@@ -338,7 +359,7 @@ const EmployeeForm: React.FC = () => {
               <label className="block text-sm font-medium mb-1">Full Name *</label>
               <input
                 value={fullName}
-                onChange={(e) =>{
+                onChange={(e) => {
                   setFullName(e.target.value);
                   clearFieldError('fullName');
                 }}
@@ -350,7 +371,7 @@ const EmployeeForm: React.FC = () => {
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.fullName[0]}</p>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">Date of Birth</label>
               <input
@@ -367,7 +388,7 @@ const EmployeeForm: React.FC = () => {
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.dob[0]}</p>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">CNIC (13 digits)</label>
               <input
@@ -395,7 +416,7 @@ const EmployeeForm: React.FC = () => {
                 <option value="female">Female</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">Nationality</label>
               <input
@@ -405,7 +426,7 @@ const EmployeeForm: React.FC = () => {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">Religion</label>
               <input
@@ -442,7 +463,7 @@ const EmployeeForm: React.FC = () => {
                   <p className="text-red-500 text-sm mt-1">{fieldErrors.personalEmail[0]}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Mobile Number *</label>
                 <input
@@ -457,7 +478,7 @@ const EmployeeForm: React.FC = () => {
                   <p className="text-red-500 text-sm mt-1">{fieldErrors.mobile[0]}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Emergency Phone</label>
                 <input
@@ -521,16 +542,65 @@ const EmployeeForm: React.FC = () => {
         {/* Employment Details */}
         <Card>
           <CardHeader>
-            <CardTitle>Employment Details</CardTitle>
+            <CardTitle>Employment Details (Hierarchy)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Institution *</label>
+                <select
+                  value={institution}
+                  onChange={(e) => {
+                    setInstitution(e.target.value);
+                    setBranch(''); // Reset child
+                    clearFieldError('institutionCode');
+                  }}
+                  className={getFieldClass('institutionCode')}
+                  required
+                  disabled={isLoading}
+                >
+                  <option value="">Select Institution</option>
+                  {institutions.map((inst) => (
+                    <option key={inst.inst_code} value={inst.inst_code}>
+                      {inst.inst_code} - {inst.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Branch / Campus *</label>
+                <select
+                  value={branch}
+                  onChange={(e) => {
+                    setBranch(e.target.value);
+                    clearFieldError('branchCode');
+                  }}
+                  className={getFieldClass('branchCode')}
+                  required
+                  disabled={!institution || isLoading}
+                >
+                  <option value="">Select Branch</option>
+                  {filteredBranches.map((br) => (
+                    <option key={br.branch_code} value={br.branch_code}>
+                      {br.branch_code} - {br.branch_name}
+                    </option>
+                  ))}
+                </select>
+                {!institution && (
+                  <p className="text-sm text-gray-500 mt-1">Select institution first</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Department *</label>
                 <select
                   value={department}
                   onChange={(e) => {
                     setDepartment(e.target.value);
+                    setDesignation(''); // Reset child
                     clearFieldError('department');
                   }}
                   className={getFieldClass('department')}
@@ -575,7 +645,9 @@ const EmployeeForm: React.FC = () => {
                   <p className="text-red-500 text-sm mt-1">{fieldErrors.designation[0]}</p>
                 )}
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Date of Joining</label>
                 <input
@@ -588,25 +660,38 @@ const EmployeeForm: React.FC = () => {
                   className={getFieldClass('dateOfJoining')}
                   disabled={isLoading}
                 />
-                {fieldErrors.dateOfJoining && (
-                  <p className="text-red-500 text-sm mt-1">{fieldErrors.dateOfJoining[0]}</p>
-                )}
               </div>
-            </div>
 
-            <div className="col-span-1 md:col-span-3">
-              <label className="block text-sm font-medium mb-1">Employment Type</label>
-              <select
-                value={employmentType}
-                onChange={(e) => setEmploymentType(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                disabled={isLoading}
-              >
-                <option>Full-time</option>
-                <option>Part-time</option>
-                <option>Contract</option>
-                <option>Intern</option>
-              </select>
+              <div>
+                <label className="block text-sm font-medium mb-1">Shift</label>
+                <select
+                  value={shift}
+                  onChange={(e) => setShift(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  disabled={isLoading}
+                >
+                  <option value="morning">Morning</option>
+                  <option value="afternoon">Afternoon</option>
+                  <option value="both">Both (Morning + Afternoon)</option>
+                  <option value="night">Night</option>
+                  <option value="general">General/Office</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Employment Type</label>
+                <select
+                  value={employmentType}
+                  onChange={(e) => setEmploymentType(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  disabled={isLoading}
+                >
+                  <option>Full-time</option>
+                  <option>Part-time</option>
+                  <option>Contract</option>
+                  <option>Intern</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>

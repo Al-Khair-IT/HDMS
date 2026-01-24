@@ -8,58 +8,70 @@ import { THEME } from '../../../../../lib/theme';
 import { getMockEmployeeById } from '../../../../../lib/mockData';
 import { checkHdmsAccess, grantHdmsAccess, validatePassword, HdmsAccessStatus } from '../../../../../services/permissionService';
 
-interface Department {
-  dept_code: string;
-  dept_name: string;
-  dept_sector?: string;
-}
-
-interface Designation {
-  position_code: string;
-  position_name: string;
+interface Assignment {
+  institution: string;
+  branch_name: string;
+  department: string;
+  designation: string;
+  shift: string;
+  joining_date: string;
+  is_primary: boolean;
+  role_data?: any;
 }
 
 interface Education {
   degree: string;
   institute: string;
   passingYear: string;
+  grade?: string;
+  subjects?: string;
 }
 
 interface Experience {
   employer: string;
   jobTitle: string;
-  startDate: string;
-  endDate: string;
-  responsibilities: string;
+  totalYears?: string;
+  startDate?: string;
+  endDate?: string;
+  responsibilities?: string;
 }
 
 interface Employee {
   employee_id: string;
   employee_code: string;
   full_name: string;
-  email: string;
-  phone: string;
+  personal_email: string;
+  personal_phone: string;
+  email?: string;
+  phone?: string;
+  org_email: string | null;
+  org_phone: string | null;
   cnic: string;
   dob: string | null;
   gender: string;
+  marital_status: string;
+  employment_type: string;
   nationality: string | null;
   religion: string | null;
-  emergency_contact_phone: string | null;
-  residential_address: string;
-  permanent_address: string | null;
-  city: string | null;
-  state: string | null;
-  department: Department | null;
-  designation: Designation | null;
-  joining_date: string | null;
-  employment_type: string;
-  employment_type_value: string;
-  organization_phone: string | null;
-  bank_name: string;
-  account_number: string;
+  emergency_contact: {
+    name: string | null;
+    phone: string | null;
+  } | null;
+  address: {
+    residential: string;
+    permanent: string | null;
+    city: string | null;
+    state: string | null;
+  };
+  assignments: Assignment[];
+  bank_info: {
+    bank_name: string;
+    account_number: string;
+  };
   education_history: Education[] | null;
   work_experience: Experience[] | null;
   resume: string | null;
+  is_active: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -117,29 +129,44 @@ const EmployeeDetailPage: React.FC = () => {
               employee_id: mockEmp.employee_id,
               employee_code: mockEmp.employee_code,
               full_name: mockEmp.full_name,
-              email: mockEmp.email,
-              phone: mockEmp.phone,
+              personal_email: mockEmp.email,
+              personal_phone: mockEmp.phone,
+              org_email: null,
+              org_phone: null,
               cnic: '12345-1234567-1',
               dob: '1990-01-01',
               gender: 'male',
+              marital_status: 'single',
+              employment_type: 'Full-time',
               nationality: 'Pakistani',
               religion: 'Islam',
-              emergency_contact_phone: mockEmp.phone,
-              residential_address: 'Mock Address',
-              permanent_address: 'Mock Permanent Address',
-              city: 'Karachi',
-              state: 'Sindh',
-              department: mockEmp.department,
-              designation: mockEmp.designation,
-              joining_date: mockEmp.joining_date,
-              employment_type: mockEmp.employment_type,
-              employment_type_value: mockEmp.employment_type_value,
-              organization_phone: null,
-              bank_name: 'Mock Bank',
-              account_number: '1234567890',
+              emergency_contact: {
+                name: 'Emergency Contact',
+                phone: mockEmp.phone
+              },
+              address: {
+                residential: 'Mock Address',
+                permanent: 'Mock Permanent Address',
+                city: 'Karachi',
+                state: 'Sindh',
+              },
+              assignments: [{
+                institution: mockEmp.department?.dept_name || 'N/A',
+                branch_name: 'Main Campus',
+                department: mockEmp.department?.dept_name || 'N/A',
+                designation: mockEmp.designation?.position_name || 'N/A',
+                shift: 'Morning',
+                joining_date: mockEmp.joining_date || '2024-01-01',
+                is_primary: true
+              }],
+              bank_info: {
+                bank_name: 'Mock Bank',
+                account_number: '1234567890',
+              },
               education_history: null,
               work_experience: null,
-              resume: null,
+              resume: mockEmp.resume_url || null,
+              is_active: true,
               created_at: mockEmp.created_at,
               updated_at: null
             };
@@ -162,29 +189,44 @@ const EmployeeDetailPage: React.FC = () => {
             employee_id: mockEmp.employee_id,
             employee_code: mockEmp.employee_code,
             full_name: mockEmp.full_name,
-            email: mockEmp.email,
-            phone: mockEmp.phone,
+            personal_email: mockEmp.email,
+            personal_phone: mockEmp.phone,
+            org_email: null,
+            org_phone: null,
             cnic: '12345-1234567-1',
             dob: '1990-01-01',
             gender: 'male',
+            marital_status: 'single',
+            employment_type: 'Full-time',
             nationality: 'Pakistani',
             religion: 'Islam',
-            emergency_contact_phone: mockEmp.phone,
-            residential_address: 'Mock Address',
-            permanent_address: 'Mock Permanent Address',
-            city: 'Karachi',
-            state: 'Sindh',
-            department: mockEmp.department,
-            designation: mockEmp.designation,
-            joining_date: mockEmp.joining_date,
-            employment_type: mockEmp.employment_type,
-            employment_type_value: mockEmp.employment_type_value,
-            organization_phone: null,
-            bank_name: 'Mock Bank',
-            account_number: '1234567890',
+            emergency_contact: {
+              name: 'Emergency Contact',
+              phone: mockEmp.phone
+            },
+            address: {
+              residential: 'Mock Address',
+              permanent: 'Mock Permanent Address',
+              city: 'Karachi',
+              state: 'Sindh',
+            },
+            assignments: [{
+              institution: mockEmp.department?.dept_name || 'N/A',
+              branch_name: 'Main Campus',
+              department: mockEmp.department?.dept_name || 'N/A',
+              designation: mockEmp.designation?.position_name || 'N/A',
+              shift: 'Morning',
+              joining_date: mockEmp.joining_date || '2024-01-01',
+              is_primary: true
+            }],
+            bank_info: {
+              bank_name: 'Mock Bank',
+              account_number: '1234567890',
+            },
             education_history: null,
             work_experience: null,
-            resume: null,
+            resume: mockEmp.resume_url || null,
+            is_active: true,
             created_at: mockEmp.created_at,
             updated_at: null
           };
@@ -361,7 +403,21 @@ const EmployeeDetailPage: React.FC = () => {
           </Button>
           <div>
             <h2 className="text-2xl font-bold">{employee.full_name}</h2>
-            <p className="text-sm text-gray-600">{employee.employee_code}</p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p className="text-sm text-gray-600 font-medium">{employee.employee_code}</p>
+              {employee.assignments.find(a => a.is_primary) && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <p className="text-sm font-semibold text-blue-600">
+                    {employee.assignments.find(a => a.is_primary)?.designation}
+                  </p>
+                  <span className="text-gray-300">|</span>
+                  <p className="text-sm text-gray-600">
+                    {employee.assignments.find(a => a.is_primary)?.department}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -421,12 +477,20 @@ const EmployeeDetailPage: React.FC = () => {
               <p className="mt-1 capitalize">{employee.gender || '—'}</p>
             </div>
             <div>
+              <label className="text-sm font-medium text-gray-600">Marital Status</label>
+              <p className="mt-1 capitalize">{employee.marital_status || '—'}</p>
+            </div>
+            <div>
               <label className="text-sm font-medium text-gray-600">Nationality</label>
               <p className="mt-1">{employee.nationality || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Religion</label>
               <p className="mt-1">{employee.religion || '—'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600">Employment Type</label>
+              <p className="mt-1 capitalize">{employee.employment_type || '—'}</p>
             </div>
           </div>
         </CardContent>
@@ -440,85 +504,101 @@ const EmployeeDetailPage: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div>
-              <label className="text-sm font-medium text-gray-600">Email</label>
-              <p className="mt-1">{employee.email}</p>
+              <label className="text-sm font-medium text-gray-600">Personal Email</label>
+              <p className="mt-1">{employee.personal_email}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Mobile Number</label>
-              <p className="mt-1">{employee.phone}</p>
+              <p className="mt-1">{employee.personal_phone}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600">Emergency Phone</label>
-              <p className="mt-1">{employee.emergency_contact_phone || '—'}</p>
+              <label className="text-sm font-medium text-gray-600">Emergency Contact</label>
+              <p className="mt-1 text-sm font-semibold">{employee.emergency_contact?.name || '—'}</p>
+              <p className="text-sm text-gray-600">{employee.emergency_contact?.phone || '—'}</p>
             </div>
           </div>
 
           <div className="mt-6">
             <label className="text-sm font-medium text-gray-600">Residential Address</label>
-            <p className="mt-1">{employee.residential_address}</p>
+            <p className="mt-1">{employee.address.residential}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
             <div>
               <label className="text-sm font-medium text-gray-600">Permanent Address</label>
-              <p className="mt-1">{employee.permanent_address || '—'}</p>
+              <p className="mt-1">{employee.address.permanent || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">City</label>
-              <p className="mt-1">{employee.city || '—'}</p>
+              <p className="mt-1">{employee.address.city || '—'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">State</label>
-              <p className="mt-1">{employee.state || '—'}</p>
+              <p className="mt-1">{employee.address.state || '—'}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Employment Details */}
+      {/* Assignments Details */}
       <Card className="bg-white rounded-xl shadow mb-6">
         <CardHeader>
-          <CardTitle>Employment Details</CardTitle>
+          <CardTitle>HR Assignments</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <div>
-              <label className="text-sm font-medium text-gray-600">Department</label>
-              {employee.department ? (
-                <p className="mt-1">
-                  <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                    {employee.department.dept_code} - {employee.department.dept_name}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-1">—</p>
+          {employee.assignments.map((asn, idx) => (
+            <div key={idx} className="border p-4 rounded-lg mb-4 last:mb-0 border-l-4 border-l-blue-500">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Institution</label>
+                  <p className="mt-1 font-semibold">{asn.institution}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Branch / Campus</label>
+                  <p className="mt-1 font-semibold text-blue-600">{asn.branch_name}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Department</label>
+                  <p className="mt-1">{asn.department}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Designation</label>
+                  <p className="mt-1 font-medium">{asn.designation}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Shift</label>
+                  <p className="mt-1 capitalize">{asn.shift}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Joining Date</label>
+                  <p className="mt-1">{asn.joining_date}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase">Status</label>
+                  <div className="mt-1">
+                    {asn.is_primary && (
+                      <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Primary</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {asn.role_data?.sms_data && (
+                <div className="mt-4 pt-4 border-t border-gray-100 bg-gray-50 p-3 rounded">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">Academic Data (SIS)</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-1">
+                    <div>
+                      <p className="text-xs text-gray-500">Subjects</p>
+                      <p className="text-sm font-medium">{asn.role_data.sms_data.current_subjects || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Classes</p>
+                      <p className="text-sm font-medium">{asn.role_data.sms_data.classes_taught || '—'}</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Designation</label>
-              {employee.designation ? (
-                <p className="mt-1">
-                  <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                    {employee.designation.position_code} - {employee.designation.position_name}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-1">—</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Date of Joining</label>
-              <p className="mt-1">{employee.joining_date || '—'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Employment Type</label>
-              <p className="mt-1">
-                <span className="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                  {employee.employment_type}
-                </span>
-              </p>
-            </div>
-          </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -531,18 +611,18 @@ const EmployeeDetailPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-medium text-gray-600">Bank Name</label>
-              <p className="mt-1">{employee.bank_name}</p>
+              <p className="mt-1">{employee.bank_info.bank_name}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Account Number</label>
-              <p className="mt-1">{employee.account_number}</p>
+              <p className="mt-1">{employee.bank_info.account_number}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Organization Provided */}
-      {(employee.email || employee.organization_phone) && (
+      {(employee.org_email || employee.org_phone) && (
         <Card className="bg-white rounded-xl shadow mb-6">
           <CardHeader>
             <CardTitle>Provided By Organization</CardTitle>
@@ -551,11 +631,11 @@ const EmployeeDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="text-sm font-medium text-gray-600">Organization Email</label>
-                <p className="mt-1">{employee.email || '—'}</p>
+                <p className="mt-1">{employee.org_email || '—'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Organization Phone</label>
-                <p className="mt-1">{employee.organization_phone || '—'}</p>
+                <p className="mt-1">{employee.org_phone || '—'}</p>
               </div>
             </div>
           </CardContent>
@@ -581,8 +661,8 @@ const EmployeeDetailPage: React.FC = () => {
                     <p className="mt-1">{edu.institute || '—'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Passing Year</label>
-                    <p className="mt-1">{edu.passingYear || '—'}</p>
+                    <label className="text-sm font-medium text-gray-600">Passing Year/Grade</label>
+                    <p className="mt-1">{edu.passingYear || '—'} {edu.grade ? (`(Grade: ${edu.grade})`) : ''}</p>
                   </div>
                 </div>
               </div>
@@ -610,8 +690,10 @@ const EmployeeDetailPage: React.FC = () => {
                     <p className="mt-1">{exp.jobTitle || '—'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Duration</label>
-                    <p className="mt-1">{exp.startDate} to {exp.endDate || 'Present'}</p>
+                    <label className="text-sm font-medium text-gray-600">Duration/Experience</label>
+                    <p className="mt-1">
+                      {exp.startDate ? (`${exp.startDate} to ${exp.endDate || 'Present'}`) : (`${exp.totalYears || '0'} Years Experience`)}
+                    </p>
                   </div>
                 </div>
                 {exp.responsibilities && (
@@ -693,7 +775,7 @@ const EmployeeDetailPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <input
                     type="email"
-                    value={employee.email}
+                    value={employee.personal_email}
                     disabled
                     className="w-full px-4 py-2 border rounded-lg bg-gray-50"
                   />
@@ -702,7 +784,7 @@ const EmployeeDetailPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
                     type="text"
-                    value={employee.phone}
+                    value={employee.personal_phone}
                     disabled
                     className="w-full px-4 py-2 border rounded-lg bg-gray-50"
                   />

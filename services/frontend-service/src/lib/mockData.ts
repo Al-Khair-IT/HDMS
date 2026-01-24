@@ -652,6 +652,7 @@ export interface MockEmployee {
   employment_type: string;
   employment_type_value: string;
   joining_date: string | null;
+  resume_url?: string | null;
   created_at: string | null;
 }
 
@@ -719,6 +720,7 @@ export const mockEmployees: MockEmployee[] = [
     employment_type: 'Full-time',
     employment_type_value: 'full_time',
     joining_date: '2021-03-15',
+    resume_url: null,
     created_at: '2021-03-15T09:00:00Z',
   },
 ];

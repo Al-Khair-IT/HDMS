@@ -15,6 +15,7 @@ export const Layout: React.FC<LayoutProps> = React.memo(({ children }) => {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Don't show layout on auth pages
   const isAuthPage = pathname?.startsWith('/login') ||
@@ -56,7 +57,11 @@ export const Layout: React.FC<LayoutProps> = React.memo(({ children }) => {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: THEME.colors.background }}>
       {/* Top Navbar */}
-      <Navbar key="navbar" role={role} />
+      <Navbar
+        key="navbar"
+        role={role}
+        onMobileToggle={() => setIsMobileSidebarOpen(prev => !prev)}
+      />
 
       {/* Main Content Area */}
       <div className="flex flex-1 pt-16 md:pt-20">
@@ -68,6 +73,8 @@ export const Layout: React.FC<LayoutProps> = React.memo(({ children }) => {
             currentPage={pathname || ''}
             isOpen={isSidebarOpen}
             onToggle={() => setIsSidebarOpen(prev => !prev)}
+            isMobileOpen={isMobileSidebarOpen}
+            onMobileToggle={() => setIsMobileSidebarOpen(prev => !prev)}
           />
         </div>
 

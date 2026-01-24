@@ -13,6 +13,7 @@ export interface Department {
     dept_code: string;
     dept_name: string;
     dept_sector: string;
+    institution_code?: string;
     description?: string;
     employee_count?: number;
     designations?: { position_code: string; position_name: string }[];
@@ -22,6 +23,7 @@ export interface DepartmentCreateData {
     dept_code: string;
     dept_name: string;
     dept_sector: string;
+    institution_code?: string;
     description?: string;
 }
 
@@ -52,10 +54,11 @@ export async function fetchDepartments(): Promise<ApiResponse<Department[]>> {
         // Transform API response to match our interface
         const departments: Department[] = data.map((dept: any) => ({
             id: dept.id,
-            department_id: dept.department_id,
+            department_id: dept.department_id || dept.id,
             dept_code: dept.dept_code,
             dept_name: dept.dept_name,
-            dept_sector: dept.dept_sector,
+            dept_sector: dept.dept_sector || 'other',
+            institution_code: dept.institution_code,
             description: dept.description,
         }));
 
