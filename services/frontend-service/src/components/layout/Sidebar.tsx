@@ -40,29 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
-
-  // We should also expose a way to toggle mobile sidebar from parent if needed, 
-  // but for now local state handles the mobile drawer itself, BUT the parent Layout needs to know about mobile toggle trigger.
-  // Actually, usually a hamburger menu in Navbar triggers mobile sidebar.
-  // For now let's keep mobile logic here BUT listen to an event or expose a method? 
-  // Or better, let parent handle mobile state too if Navbar has the toggle.
-  // The current Sidebar has its own mobile drawer. How does it open? 
-  // There is NO button visible on mobile to open it in this component? 
-  // Ah, the previous code had "Toggle Button - REMOVE THIS ENTIRE SECTION".
-  // And it had `mobileSidebarOpen` state but only overlay and drawer used it.
-  // The trigger must be external (Navbar) or I missed it.
-  // Let's assume Navbar will trigger it. So we need `mobileOpen` prop too?
-  // Let's stick to the requested changes: "Collapsible desktop sidebar".
-  // I will add a `useEffect` to listen for mobile toggle if needed, or better, 
-  // just assume layout passes `mobileOpen` too.
-  // But let's first fix the desktop collapse.
-
-  // React.useEffect(() => {
-  //   const handleMobileToggle = () => setMobileSidebarOpen(prev => !prev);
-  //   window.addEventListener('toggleMobileSidebar', handleMobileToggle);
-  //   return () => window.removeEventListener('toggleMobileSidebar', handleMobileToggle);
-  // }, []);
-
+  
   const getSidebarItems = (role: string) => {
     switch (role) {
       case 'requestor':

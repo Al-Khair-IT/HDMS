@@ -147,18 +147,18 @@ export const Navbar: React.FC<NavbarProps> = ({ role, onMobileToggle }) => {
           { name: 'All Requests', url: '/admin/requests', description: 'View all requests' },
           { name: 'Reports', url: '/admin/reports', description: 'View reports' },
           { name: 'Notifications', url: '/admin/notifications', description: 'View notifications' },
-          { name: 'Settings', url: '/admin/settings', description: 'System settings' },
-          { name: 'Profile', url: '/admin/profile', description: 'Manage profile' },
-          { name: 'Dashboard', url: `/${role}/dashboard`, icon: Home },
-          { name: 'All Requests', url: `/${role}/requests`, icon: FileText },
-          { name: 'Users', url: `/${role}/users`, icon: Users },
-          { name: 'Employees', url: `/${role}/employees`, icon: UserPlus },
-          { name: 'Institutions', url: `/${role}/institutions`, icon: Building },
-          { name: 'Branches', url: `/${role}/branches`, icon: MapPin },
-          { name: 'Departments', url: `/${role}/departments`, icon: Building },
-          { name: 'Settings', url: `/${role}/settings`, icon: Settings },
-          { name: 'Notifications', url: `/${role}/notifications`, icon: Inbox },
-          { name: 'Profile', url: `/${role}/profile`, icon: Users }
+          // { name: 'Settings', url: '/admin/settings', description: 'System settings' },
+          // { name: 'Profile', url: '/admin/profile', description: 'Manage profile' },
+          // { name: 'Dashboard', url: `/${role}/dashboard`, icon: Home },
+          // { name: 'All Requests', url: `/${role}/requests`, icon: FileText },
+          // { name: 'Users', url: `/${role}/users`, icon: Users },
+          // { name: 'Employees', url: `/${role}/employees`, icon: UserPlus },
+          // { name: 'Institutions', url: `/${role}/institutions`, icon: Building },
+          // { name: 'Branches', url: `/${role}/branches`, icon: MapPin },
+          // { name: 'Departments', url: `/${role}/departments`, icon: Building },
+          // { name: 'Settings', url: `/${role}/settings`, icon: Settings },
+          // { name: 'Notifications', url: `/${role}/notifications`, icon: Inbox },
+          // { name: 'Profile', url: `/${role}/profile`, icon: Users }
         ];
       default:
         return [];
