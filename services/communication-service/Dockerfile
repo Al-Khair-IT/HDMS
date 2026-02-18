@@ -1,27 +1,40 @@
-# Communication Service Dockerfile
+# Stage 1: Build
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Production
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies
+ENV PYTHONPATH="/shared:/shared/apps"
+
 RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
+    libpq5 \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
+COPY --from=builder /install /usr/local
 COPY src/ .
 
-# Add shared directory to Python path
-ENV PYTHONPATH="${PYTHONPATH}:/shared"
+# Create a non-root user
+RUN adduser --system --group django
+RUN chown -R django:django /app
+USER django
 
-# Expose port
 EXPOSE 8003
 
 # Run migrations and start ASGI server

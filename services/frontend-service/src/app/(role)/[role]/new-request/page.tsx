@@ -193,7 +193,7 @@ export default function NewRequestPage() {
       ));
 
       try {
-        await fileService.uploadFile(
+        const uploadRes = await fileService.uploadFile(
           fileWithStatus.file,
           'ticket_attachment',
           undefined, // No ticket ID yet
@@ -204,9 +204,14 @@ export default function NewRequestPage() {
           }
         );
 
-        // Success - Set to ready
+        // Success - Set to ready and store the backend ID
         setAttachments(prev => prev.map(a =>
-          a.id === fileWithStatus.id ? { ...a, status: 'ready', progress: 100 } : a
+          a.id === fileWithStatus.id ? { 
+            ...a, 
+            status: 'ready', 
+            progress: 100,
+            backendId: uploadRes.id // Store the ID from file-service
+          } : a
         ));
       } catch (error: any) {
         console.error(`Upload failed for ${fileWithStatus.file.name}:`, error);
@@ -307,7 +312,7 @@ export default function NewRequestPage() {
         category: formData.category,
         requestorId: user?.id || '',
         status: 'submitted',
-        attachments: attachments.filter(f => f.status === 'ready' || f.status === 'pending').map(f => f.file),
+        attachmentIds: attachments.filter(f => f.status === 'ready').map(f => (f as any).backendId).filter(Boolean),
       });
 
       if (ticket) {
@@ -328,7 +333,12 @@ export default function NewRequestPage() {
   const isUploading = attachments.some(a => a.status === 'uploading');
   const hasUploadErrors = attachments.some(a => a.status === 'error');
 
-  const isSubmitDisabled = loading || savingDraft || isUploading || (attachments.length > 0 && !isAttachmentsReady && !hasUploadErrors);
+  const isSubmitDisabled = 
+    loading || 
+    savingDraft || 
+    isUploading || 
+    hasUploadErrors || 
+    (attachments.length > 0 && !isAttachmentsReady);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: '#e7ecef', minHeight: '100vh' }}>

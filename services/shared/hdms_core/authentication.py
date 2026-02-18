@@ -49,9 +49,11 @@ class RemoteJWTAuthentication(JWTAuthentication):
         last_name = ' '.join(names[1:]) if len(names) > 1 else ''
 
         # Prepare User Data for Sync
-        # We start with fields we definitely want to ensure match the token (Single Source of Truth)
+        # Support both 'employee_code' (legacy/standard) and 'code' (polymorphic)
+        employee_code = payload.get('employee_code') or payload.get('code', '')
+        
         defaults = {
-            'employee_code': payload.get('employee_code', ''),
+            'employee_code': employee_code,
             'email': payload.get('email', ''),
             'first_name': first_name,
             'last_name': last_name,
