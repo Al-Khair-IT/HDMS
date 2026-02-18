@@ -21,6 +21,8 @@ import { TICKET_PRIORITY, DEPARTMENTS } from '../../../../lib/constants';
 import { ticketService } from '../../../../services/api/ticketService';
 import { fileService } from '../../../../services/api/fileService';
 import { departmentService, Department } from '../../../../services/api/departmentService';
+import { apiClient } from '../../../../services/api/axiosClient';
+import { ENV } from '../../../../config/env';
 import { AlertCircle, Save, CheckCircle } from 'lucide-react';
 
 // Department categories mapping
@@ -204,15 +206,42 @@ export default function NewRequestPage() {
           }
         );
 
-        // Success - Set to ready and store the backend ID
+        // Success - Set to processing if scan is pending, or ready if clean
+        const isClean = uploadRes.scan_status === 'clean';
         setAttachments(prev => prev.map(a =>
           a.id === fileWithStatus.id ? { 
             ...a, 
-            status: 'ready', 
+            status: isClean ? 'ready' : 'processing', 
             progress: 100,
-            backendId: uploadRes.id // Store the ID from file-service
+            backendId: uploadRes.id 
           } : a
         ));
+
+        // If not clean yet, start polling
+        if (!isClean) {
+          const pollInterval = setInterval(async () => {
+             try {
+               const statusRes = await apiClient.get(`${ENV.FILE_SERVICE_URL}/api/v1/files/${uploadRes.id}/status`);
+               if (statusRes.scan_status === 'clean') {
+                 setAttachments(prev => prev.map(a =>
+                   a.id === fileWithStatus.id ? { ...a, status: 'ready' } : a
+                 ));
+                 clearInterval(pollInterval);
+               } else if (statusRes.scan_status === 'infected' || statusRes.scan_status === 'failed') {
+                 setAttachments(prev => prev.map(a =>
+                   a.id === fileWithStatus.id ? { ...a, status: 'error', error: `Scan ${statusRes.scan_status}` } : a
+                 ));
+                 clearInterval(pollInterval);
+               }
+             } catch (e) {
+               console.error('Polling failed', e);
+               // Keep polling or stop on error? Let's stop after a few tries if needed.
+             }
+          }, 3000);
+
+          // Stop polling after 1 minute (safety)
+          setTimeout(() => clearInterval(pollInterval), 60000);
+        }
       } catch (error: any) {
         console.error(`Upload failed for ${fileWithStatus.file.name}:`, error);
         setAttachments(prev => prev.map(a =>

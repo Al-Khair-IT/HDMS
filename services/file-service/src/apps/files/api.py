@@ -56,34 +56,61 @@ def upload_file(request, ticket_id: Optional[str] = None, chat_message_id: Optio
     return result
 
 
-@router.get("/{file_key}", response=AttachmentOut)
-def get_file(request, file_key: str):
-    """Get file details by file_key."""
-    attachment = Attachment.objects.get(file_key=file_key, is_deleted=False)
-    return AttachmentOut.from_orm(attachment)
-
-
-@router.get("/{file_key}/status", response=AttachmentOut)
-def get_file_status(request, file_key: str):
+@router.get("/{file_id_or_key}/status", response=AttachmentOut)
+def get_file_status(request, file_id_or_key: str):
     """Get file scan/processing status."""
-    attachment = Attachment.objects.get(file_key=file_key, is_deleted=False)
-    return AttachmentOut.from_orm(attachment)
+    print(f"DEBUG: get_file_status for {file_id_or_key}", flush=True)
+    try:
+        # Try finding by ID first
+        try:
+            attachment = Attachment.objects.get(id=file_id_or_key)
+        except (Attachment.DoesNotExist, ValueError):
+            # Fallback to file_key
+            attachment = Attachment.objects.get(file_key=file_id_or_key)
+            
+        print(f"DEBUG: Found attachment: {attachment.id} (Status: {attachment.scan_status})", flush=True)
+        return AttachmentOut.from_orm(attachment)
+    except Exception as e:
+        print(f"DEBUG: Error in get_file_status: {str(e)}", flush=True)
+        raise HttpError(404, f"Attachment {file_id_or_key} not found: {str(e)}")
 
 
-@router.get("/{file_key}/download")
-def download_file(request, file_key: str):
+@router.get("/{file_id_or_key}/download")
+def download_file(request, file_id_or_key: str):
     """Download file."""
-    from django.http import FileResponse
-    attachment = Attachment.objects.get(file_key=file_key, is_deleted=False)
+    print(f"DEBUG: download_file for {file_id_or_key}", flush=True)
+    try:
+        try:
+            attachment = Attachment.objects.get(id=file_id_or_key)
+        except (Attachment.DoesNotExist, ValueError):
+            attachment = Attachment.objects.get(file_key=file_id_or_key)
+    except (Attachment.DoesNotExist, ValueError):
+        raise HttpError(404, f"Attachment {file_id_or_key} not found")
     
     if attachment.scan_status != 'clean':
-        raise HttpError(400, "File not available for download")
+        raise HttpError(400, f"File {file_id_or_key} not available for download (Status: {attachment.scan_status})")
 
-    
+    from django.http import FileResponse
     return FileResponse(
         open(attachment.file_path, 'rb'),
         as_attachment=True,
         filename=attachment.original_filename
     )
+
+
+@router.get("/{file_id_or_key}", response=AttachmentOut)
+def get_file(request, file_id_or_key: str):
+    """Get file details by id or file_key."""
+    print(f"DEBUG: get_file for {file_id_or_key}", flush=True)
+    try:
+        try:
+            attachment = Attachment.objects.get(id=file_id_or_key)
+        except (Attachment.DoesNotExist, ValueError):
+            attachment = Attachment.objects.get(file_key=file_id_or_key)
+            
+        return AttachmentOut.from_orm(attachment)
+    except Exception as e:
+        print(f"DEBUG: Error in get_file: {str(e)}", flush=True)
+        raise HttpError(404, f"Attachment {file_id_or_key} not found: {str(e)}")
 
 

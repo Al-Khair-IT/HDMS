@@ -12,6 +12,7 @@ export interface UploadResponse {
     size: number;
     content_type: string;
     key: string; // S3/MinIO key
+    scan_status?: 'pending' | 'clean' | 'infected' | 'failed';
 }
 
 class FileService {

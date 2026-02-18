@@ -50,26 +50,25 @@ class RemoteJWTAuthentication(JWTAuthentication):
 
         # Prepare User Data for Sync
         # Support both 'employee_code' (legacy/standard) and 'code' (polymorphic)
-        employee_code = payload.get('employee_code') or payload.get('code', '')
+        employee_code = (payload.get('employee_code') or payload.get('code', '')).strip()
         
         defaults = {
-            'employee_code': employee_code,
-            'email': payload.get('email', ''),
+            'email': payload.get('email', '').strip(),
             'first_name': first_name,
             'last_name': last_name,
             'is_active': payload.get('is_active', True),
         }
 
+        # Only include employee_code in defaults if it's NOT empty
+        # This prevents unique constraint violations for users with missing codes
+        if employee_code:
+            defaults['employee_code'] = employee_code
+        else:
+            logger.warning(f"JIT Auth: Token for user {user_id} missing employee_code. Skipping unique field sync.")
+
         # Handle Role: Only update role if it is explicitly in the token
-        # This prevents overwriting a locally assigned 'moderator' role with a default 'requestor'
-        # if the auth-service doesn't know about HDMS roles.
         if 'role' in payload:
             defaults['role'] = payload['role']
-        
-        # Determine strict mode (fail if critical data missing)
-        # We can relax this if needed, but for now strict is safer
-        if not defaults['employee_code']:
-            logger.warning(f"Token for user {user_id} missing employee_code")
 
         # 3. JIT Sync (Get or Create/Update)
         try:

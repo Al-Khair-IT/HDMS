@@ -4,12 +4,13 @@ Pydantic schemas for File Service.
 from ninja import Schema
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
 
 class AttachmentOut(Schema):
     """Attachment output schema."""
-    id: str
-    file_key: str
+    id: UUID
+    file_key: UUID
     original_filename: str
     file_size: int
     mime_type: str
@@ -19,9 +20,9 @@ class AttachmentOut(Schema):
     scanned_at: Optional[datetime]
     is_processed: bool
     processed_at: Optional[datetime]
-    ticket_id: Optional[str]
-    chat_message_id: Optional[str]
-    uploaded_by_id: str
+    ticket_id: Optional[UUID]
+    chat_message_id: Optional[UUID]
+    uploaded_by_id: UUID
     created_at: datetime
 
 
