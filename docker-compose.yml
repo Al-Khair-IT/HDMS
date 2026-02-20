@@ -8,7 +8,7 @@ services:
     env_file:
       - ../.env # Load root .env file
     volumes:
-      - ./services/ticket-service/src:/app
+      # src:/app volume removed for production (code is baked into image)
       - ./services/shared:/shared
     ports:
       - "8002:8002"
@@ -32,7 +32,7 @@ services:
     env_file:
       - ../.env
     volumes:
-      - ./services/communication-service/src:/app
+      # src:/app volume removed for production (code is baked into image)
       - ./services/shared:/shared
     ports:
       - "8003:8003"
@@ -58,9 +58,9 @@ services:
     env_file:
       - ../.env
     volumes:
-      - ./services/file-service/src:/app
+      # src:/app volume removed for production (code is baked into image)
       - ./services/shared:/shared
-      - ./services/file-service/src/media:/app/media
+      - file_storage:/app/media
     ports:
       - "8005:8005"
     healthcheck:
@@ -86,9 +86,9 @@ services:
     env_file:
       - ../.env
     volumes:
-      - ./services/file-service/src:/app
+      # src:/app volume removed for production (code is baked into image)
       - ./services/shared:/shared
-      - ./services/file-service/src/media:/app/media
+      - file_storage:/app/media
     depends_on:
       - file-service
     networks:
@@ -103,9 +103,6 @@ services:
     container_name: hdms-frontend-service
     env_file:
       - ../.env
-    # volumes:
-    #   - ./services/frontend-service:/app
-    #   - /app/node_modules
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_GATEWAY_URL=http://localhost/api/v1
@@ -152,5 +149,3 @@ networks:
 
 volumes:
   file_storage:
-
-
