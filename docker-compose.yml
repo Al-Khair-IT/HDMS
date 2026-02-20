@@ -5,6 +5,7 @@ services:
       context: ./services/ticket-service
       dockerfile: Dockerfile
     container_name: hdms-ticket-service
+    command: sh -c "python manage.py migrate --fake-initial && gunicorn --bind 0.0.0.0:8002 --workers 3 core.wsgi:application"
     env_file:
       - ../.env # Load root .env file
     volumes:
@@ -21,6 +22,7 @@ services:
     networks:
       - erp_network
     restart: unless-stopped
+
 
   # Communication Service
   communication-service:
