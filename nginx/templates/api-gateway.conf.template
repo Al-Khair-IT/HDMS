@@ -27,6 +27,17 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Admin: Auth Service
+    location /auth-admin/ {
+        set $auth_upstream http://auth_service:8000;
+        rewrite ^/auth-admin/(.*)$ /admin/$1 break;
+        proxy_pass $auth_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # Employees Route (part of Auth Service)
     location /api/employees {
         set $auth_upstream http://auth_service:8000;
@@ -47,9 +58,31 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Admin: Ticket Service
+    location /ticket-admin/ {
+        set $ticket_upstream http://ticket-service:8002;
+        rewrite ^/ticket-admin/(.*)$ /admin/$1 break;
+        proxy_pass $ticket_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # Communication Service Routes
     location /api/v1/chat/ {
         set $comm_upstream http://communication-service:8003;
+        proxy_pass $comm_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Admin: Communication Service
+    location /chat-admin/ {
+        set $comm_upstream http://communication-service:8003;
+        rewrite ^/chat-admin/(.*)$ /admin/$1 break;
         proxy_pass $comm_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -65,6 +98,27 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Admin: File Service
+    location /file-admin/ {
+        set $file_upstream http://file-service:8005;
+        rewrite ^/file-admin/(.*)$ /admin/$1 break;
+        proxy_pass $file_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Shared Static Files for Admin/Backend (via WhiteNoise)
+    location /static/ {
+        # This is a bit tricky in microservices. 
+        # We'll default to Auth service for base admin static files if matched exactly,
+        # but realistically WhiteNoise inside the proxied admin routes will handle this.
+        # However, we need this block so Nginx doesn't try to find /static/ locally.
+        proxy_pass http://auth_service:8000; 
+        proxy_set_header Host $host;
     }
 
     # WebSocket Routes
