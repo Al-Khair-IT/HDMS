@@ -59,6 +59,19 @@ except ImportError:
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
 
+# Proxy awareness
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = [
+    'http://10.0.8.135',
+    'http://localhost',
+    'http://127.0.0.1',
+]
+
+# Session cookie configuration for microservices
+SESSION_COOKIE_NAME = 'ticket_sessionid'
+SESSION_COOKIE_PATH = '/'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
