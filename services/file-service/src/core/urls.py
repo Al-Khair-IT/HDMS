@@ -11,7 +11,7 @@ def health_check(request):
     return JsonResponse({"status": "healthy", "service": "file-service"})
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('file-admin/', admin.site.urls),
     path('api/v1/', api.urls),
     path('health/', health_check, name='health'),
 ]
