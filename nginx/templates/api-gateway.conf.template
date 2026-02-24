@@ -32,6 +32,7 @@ server {
         set $auth_upstream http://auth_service:8000;
         rewrite ^/auth-admin/(.*)$ /admin/$1 break;
         proxy_pass $auth_upstream;
+        proxy_redirect /admin/ /auth-admin/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -63,6 +64,7 @@ server {
         set $ticket_upstream http://ticket-service:8002;
         rewrite ^/ticket-admin/(.*)$ /admin/$1 break;
         proxy_pass $ticket_upstream;
+        proxy_redirect /admin/ /ticket-admin/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -84,6 +86,7 @@ server {
         set $comm_upstream http://communication-service:8003;
         rewrite ^/chat-admin/(.*)$ /admin/$1 break;
         proxy_pass $comm_upstream;
+        proxy_redirect /admin/ /chat-admin/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -105,6 +108,7 @@ server {
         set $file_upstream http://file-service:8005;
         rewrite ^/file-admin/(.*)$ /admin/$1 break;
         proxy_pass $file_upstream;
+        proxy_redirect /admin/ /file-admin/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
