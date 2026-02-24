@@ -17,12 +17,6 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
-    # Trap leaked admin redirects and send back to auth-admin
-    # This prevents the browser from being lost on the frontend when Django redirects to /admin/
-    location /admin/ {
-        return 301 /auth-admin/;
-    }
-
     # Auth Service Routes
     location /api/auth/ {
         set $auth_upstream http://auth_service:8000;
@@ -36,7 +30,8 @@ server {
     # Admin: Auth Service
     location /auth-admin/ {
         set $auth_upstream http://auth_service:8000;
-        proxy_pass $auth_upstream/admin/;
+        rewrite ^/auth-admin/?(.*)$ /admin/$1 break;
+        proxy_pass $auth_upstream;
         proxy_redirect /admin/ /auth-admin/;
         proxy_redirect http://$host/admin/ http://$host/auth-admin/;
         proxy_cookie_path /admin/ /auth-admin/;
@@ -45,7 +40,6 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Prefix /auth-admin;
     }
 
     # Employees Route (part of Auth Service)
@@ -71,7 +65,8 @@ server {
     # Admin: Ticket Service
     location /ticket-admin/ {
         set $ticket_upstream http://ticket-service:8002;
-        proxy_pass $ticket_upstream/admin/;
+        rewrite ^/ticket-admin/?(.*)$ /admin/$1 break;
+        proxy_pass $ticket_upstream;
         proxy_redirect /admin/ /ticket-admin/;
         proxy_redirect http://$host/admin/ http://$host/ticket-admin/;
         proxy_cookie_path /admin/ /ticket-admin/;
@@ -80,7 +75,6 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Prefix /ticket-admin;
     }
 
     # Communication Service Routes

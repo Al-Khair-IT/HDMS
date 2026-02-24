@@ -72,6 +72,10 @@ CSRF_TRUSTED_ORIGINS = [
 SESSION_COOKIE_NAME = 'comm_sessionid'
 SESSION_COOKIE_PATH = '/'
 
+# Explicitly use prefixed paths to avoid redirect loops
+LOGIN_URL = '/chat-admin/login/'
+LOGIN_REDIRECT_URL = '/chat-admin/'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

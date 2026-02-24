@@ -72,6 +72,10 @@ CSRF_TRUSTED_ORIGINS = [
 SESSION_COOKIE_NAME = 'file_sessionid'
 SESSION_COOKIE_PATH = '/'
 
+# Explicitly use prefixed paths to avoid redirect loops
+LOGIN_URL = '/file-admin/login/'
+LOGIN_REDIRECT_URL = '/file-admin/'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
