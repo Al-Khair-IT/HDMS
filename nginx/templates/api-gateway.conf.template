@@ -30,13 +30,15 @@ server {
     # Admin: Auth Service
     location /auth-admin/ {
         set $auth_upstream http://auth_service:8000;
-        rewrite ^/auth-admin/(.*)$ /admin/$1 break;
+        rewrite ^/auth-admin/?(.*)$ /admin/$1 break;
         proxy_pass $auth_upstream;
         proxy_redirect /admin/ /auth-admin/;
+        proxy_redirect http://$host/admin/ http://$host/auth-admin/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
     }
 
     # Employees Route (part of Auth Service)
@@ -62,13 +64,15 @@ server {
     # Admin: Ticket Service
     location /ticket-admin/ {
         set $ticket_upstream http://ticket-service:8002;
-        rewrite ^/ticket-admin/(.*)$ /admin/$1 break;
+        rewrite ^/ticket-admin/?(.*)$ /admin/$1 break;
         proxy_pass $ticket_upstream;
         proxy_redirect /admin/ /ticket-admin/;
+        proxy_redirect http://$host/admin/ http://$host/ticket-admin/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
     }
 
     # Communication Service Routes
