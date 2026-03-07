@@ -85,7 +85,7 @@ const RegisterPage: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${API_ENDPOINTS.REGISTER}`,
+        `${API_ENDPOINTS.REGISTER}`,
         {
           method: 'POST',
           headers: {

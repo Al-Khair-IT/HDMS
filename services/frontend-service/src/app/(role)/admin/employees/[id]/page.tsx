@@ -114,7 +114,7 @@ const EmployeeDetailPage: React.FC = () => {
       setIsLoading(true);
       try {
         // Safe fetch wrapper
-        const response = await fetch(`http://localhost:8000/api/employees/${employeeId}`).catch(err => {
+        const response = await fetch(`/api/employees/${employeeId}`).catch(err => {
           console.warn('Fetch employee failed:', err);
           return null;
         });
@@ -244,7 +244,7 @@ const EmployeeDetailPage: React.FC = () => {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/employees/${employeeId}`, {
+      const response = await fetch(`/api/employees/${employeeId}`, {
         method: 'DELETE',
       }).catch(err => {
         console.warn('Delete failed:', err);

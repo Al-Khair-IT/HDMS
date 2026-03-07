@@ -34,7 +34,7 @@ const ForgotPasswordPage: React.FC = () => {
     
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${API_ENDPOINTS.FORGOT_PASSWORD}`,
+        `${API_ENDPOINTS.FORGOT_PASSWORD}`,
         {
           method: 'POST',
           headers: {

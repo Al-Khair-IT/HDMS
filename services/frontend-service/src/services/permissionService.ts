@@ -3,7 +3,7 @@
  * Handles API calls for granting service access and permissions
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = '/api'; // Relative URL — proxied by Next.js rewrites to auth_service container
 
 export interface HdmsAccessData {
     employee_id: string;

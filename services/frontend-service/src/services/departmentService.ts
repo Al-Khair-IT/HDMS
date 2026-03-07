@@ -5,7 +5,7 @@
 
 import { getMockDepartments, getMockDepartmentById, MockDepartment, mockDepartments } from '../lib/mockData';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = '/api'; // Relative URL — proxied by Next.js rewrites to auth_service container
 
 export interface Department {
     id?: string;

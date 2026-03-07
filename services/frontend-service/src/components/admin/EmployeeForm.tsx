@@ -101,10 +101,10 @@ const EmployeeForm: React.FC = () => {
     const fetchBaseData = async () => {
       try {
         const [instRes, branchRes, deptRes, desigRes] = await Promise.all([
-          fetch('http://localhost:8000/api/institutions'),
-          fetch('http://localhost:8000/api/branches'),
-          fetch('http://localhost:8000/api/departments'),
-          fetch('http://localhost:8000/api/designations')
+          fetch('/api/institutions'),
+          fetch('/api/branches'),
+          fetch('/api/departments'),
+          fetch('/api/designations')
         ]);
 
         const [insts, brs, depts, desigs] = await Promise.all([
@@ -281,7 +281,7 @@ const EmployeeForm: React.FC = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api/employees', {
+      const response = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

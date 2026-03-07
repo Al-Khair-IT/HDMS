@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Real API call for production
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/users/login/`, {
+        const response = await fetch(`/api/users/login/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

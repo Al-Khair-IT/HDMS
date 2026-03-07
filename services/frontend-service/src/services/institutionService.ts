@@ -13,7 +13,7 @@ export interface Institution {
 
 export const fetchInstitutions = async () => {
     try {
-        const res = await fetch('http://localhost:8000/api/institutions');
+        const res = await fetch('/api/institutions');
         if (!res.ok) throw new Error('Failed to fetch institutions');
         const data = await res.json();
         return { data, error: null };
@@ -24,7 +24,7 @@ export const fetchInstitutions = async () => {
 
 export const createInstitution = async (payload: Partial<Institution>) => {
     try {
-        const res = await fetch('http://localhost:8000/api/institutions', {
+        const res = await fetch('/api/institutions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

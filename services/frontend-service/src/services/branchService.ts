@@ -15,8 +15,8 @@ export interface Branch {
 export const fetchBranches = async (institutionCode?: string) => {
     try {
         const url = institutionCode
-            ? `http://localhost:8000/api/branches?institution_code=${institutionCode}`
-            : 'http://localhost:8000/api/branches';
+            ? `/api/branches?institution_code=${institutionCode}`
+            : '/api/branches';
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch branches');
         const data = await res.json();
@@ -28,7 +28,7 @@ export const fetchBranches = async (institutionCode?: string) => {
 
 export const createBranch = async (payload: Partial<Branch>) => {
     try {
-        const res = await fetch('http://localhost:8000/api/branches', {
+        const res = await fetch('/api/branches', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

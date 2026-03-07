@@ -4,13 +4,14 @@
  */
 
 export const ENV = {
-  // API Configuration
-  API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-  AUTH_SERVICE_URL: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL || 'http://localhost:8000',
-  TICKET_SERVICE_URL: process.env.NEXT_PUBLIC_TICKET_SERVICE_URL || 'http://localhost:8002',
-  COMMUNICATION_SERVICE_URL: process.env.NEXT_PUBLIC_COMMUNICATION_SERVICE_URL || 'http://localhost:8003',
-  FILE_SERVICE_URL: process.env.NEXT_PUBLIC_FILE_SERVICE_URL || 'http://localhost:8005',
-  WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000',
+  // API Configuration — use relative URLs so browser calls same origin.
+  // Next.js server-side rewrites (next.config.ts) proxy to the correct service containers.
+  API_URL: '',
+  AUTH_SERVICE_URL: '',
+  TICKET_SERVICE_URL: '',
+  COMMUNICATION_SERVICE_URL: '',
+  FILE_SERVICE_URL: '',
+  WS_URL: process.env.NEXT_PUBLIC_WS_URL || `ws://${typeof window !== 'undefined' ? window.location.host : 'localhost'}/ws`,
 
   // App Configuration
   APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Help Desk System',
@@ -28,7 +29,7 @@ export const ENV = {
 
 // Validate required environment variables
 export const validateEnv = (): void => {
-  const required = ['NEXT_PUBLIC_API_URL'];
+  const required: string[] = []; // No longer required as we use relative URLs
   const missing = required.filter(key => !process.env[key]);
 
   if (missing.length > 0 && ENV.IS_PRODUCTION) {

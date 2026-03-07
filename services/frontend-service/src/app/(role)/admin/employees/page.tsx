@@ -91,8 +91,8 @@ const EmployeesListPage: React.FC = () => {
 				});
 
 				const [deptsRes, desigsRes] = await Promise.all([
-					safeFetch('http://localhost:8000/api/departments'),
-					safeFetch('http://localhost:8000/api/designations')
+					safeFetch('/api/departments'),
+					safeFetch('/api/designations')
 				]);
 
 				if (!deptsRes || !deptsRes.ok || !desigsRes || !desigsRes.ok) {
@@ -134,7 +134,7 @@ const EmployeesListPage: React.FC = () => {
 				if (employmentTypeFilter) params.append('employment_type', employmentTypeFilter);
 
 				// Use safe fetch pattern
-				const response = await fetch(`http://localhost:8000/api/employees?${params}`).catch(err => {
+				const response = await fetch(`/api/employees?${params}`).catch(err => {
 					console.warn('Fetch employees failed:', err);
 					return null;
 				});
