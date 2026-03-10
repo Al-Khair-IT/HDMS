@@ -37,8 +37,13 @@ const nextConfig: NextConfig = {
       },
       // File Service — uses Docker container name on erp_network
       {
-        source: '/api/files/:path*',
-        destination: 'http://hdms-file-service:8005/api/files/:path*',
+        source: '/api/v1/files/:path*',
+        destination: 'http://hdms-file-service:8005/api/v1/files/:path*',
+      },
+      // Communication Service Chat API
+      {
+        source: '/api/v1/chat/:path*',
+        destination: 'http://hdms-communication-service:8003/api/v1/chat/:path*',
       },
       // Fallback to Auth Service (Core)
       {

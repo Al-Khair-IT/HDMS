@@ -38,14 +38,12 @@ class FileService {
         }
 
         try {
-            // Using absolute URL to bypass apiClient.baseURL if it's different
-            const url = `${ENV.FILE_SERVICE_URL}/api/v1/files/upload`;
+            // Use relative URL to ensure it goes through the Next.js proxy/rewrite
+            const url = `/api/v1/files/upload`;
 
             // Explicitly get token to ensure it's sent with the request
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-            const headers: Record<string, string> = {
-                'Content-Type': 'multipart/form-data',
-            };
+            const headers: Record<string, string> = {}; // Let Axios set Content-Type with boundary
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
@@ -71,7 +69,7 @@ class FileService {
      * Get file URL (if private/signed URL needed)
      */
     getFileUrl(fileId: string): string {
-        return `${ENV.FILE_SERVICE_URL}/api/v1/files/${fileId}/download`;
+        return `/api/v1/files/${fileId}/download`;
     }
 }
 

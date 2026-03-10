@@ -63,7 +63,7 @@ class ChatSocketClient {
 
         // Get WebSocket URL from environment or construct it
         const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = ENV.COMMUNICATION_SERVICE_URL?.replace(/^https?:\/\//, '') || 'localhost:8003';
+        const wsHost = ENV.COMMUNICATION_SERVICE_URL?.replace(/^https?:\/\//, '') || (typeof window !== 'undefined' ? window.location.host : 'localhost:8003');
 
         // IMPORTANT: URL encode the token to handle special characters
         const encodedToken = encodeURIComponent(this.token);

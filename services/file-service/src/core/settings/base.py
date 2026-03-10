@@ -187,11 +187,10 @@ AUTH_USER_MODEL = 'users.User'
 
 
 # Celery Configuration (Redis database 2)
-REDIS_PASSWORD = config('REDIS_PASSWORD', default='')
 if REDIS_PASSWORD:
-    CELERY_BROKER_URL = f"redis://:{REDIS_PASSWORD}@redis:6379/2"
+    CELERY_BROKER_URL = f"redis://:{REDIS_PASSWORD}@erp_redis:6379/2"
 else:
-    CELERY_BROKER_URL = "redis://redis:6379/2"
+    CELERY_BROKER_URL = "redis://erp_redis:6379/2"
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 SIMPLE_JWT = {
